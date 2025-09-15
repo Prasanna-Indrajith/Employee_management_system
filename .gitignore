@@ -1,0 +1,23 @@
+info*.md
+backend/*
+
+# Node modules (any depth)
+**/node_modules/
+
+# Build output
+**/dist/
+**/build/
+
+# Logs
+**/*.log
+
+# Local env files
+**/.env*
+
+# OS-specific
+.DS_Store
+
+# Editor settings
+.vscode/*
+!.vscode/extensions.json
+.idea/
