@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { IconDownload } from "@tabler/icons-react";
 
 import { DepartmentSalaryChart } from '@/components/ui/pie-chart-label'
-import { SalaryGrowthChart } from '../ui/line-chart';
+import { SalaryGrowthChart } from '../../ui/line-chart';
 
 export function SalaryReportsTab() {
   return (

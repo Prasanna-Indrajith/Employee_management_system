@@ -47,48 +47,43 @@ const data = {
   navMain: [
     {
       title: "Dashboard",
-      url: "/dashboard",
+      url: "/admin/dashboard",
       icon: IconDashboard,
     },
   ],
   Employees: [
     {
       name: "All Employees",
-      url: "/employees/all",
+      url: "/admin/employees/all",
       icon: IconUsers,
     },
     {
       name: "Add Employee",
-      url: "/employees/add",
+      url: "/admin/employees/add",
       icon: IconUserPlus,
     },
-    {
-      name: "Active/Inactive",
-      url: "/employees/status",
-      icon: IconActivity,
-    }
   ],
   Attendance: [
     {
       name: "Timesheets",
-      url: "/attendance/timesheets",
+      url: "/admin/attendance/timesheets",
       icon: IconBook,
     },
     {
       name: "Time Off Requests",
-      url: "/attendance/time-off-requests",
+      url: "/admin/attendance/time-off-requests",
       icon: IconTimeDurationOff,
     }
   ],
   Salary: [
     {
       name: "Payroll",
-      url: "/salary/payroll",
+      url: "/admin/salary/payroll",
       icon: IconBook,
     },
     {
       name: "Salary Report",
-      url: "/salary/report",
+      url: "/admin/salary/report",
       icon: IconTimeDurationOff,
     }
   ],

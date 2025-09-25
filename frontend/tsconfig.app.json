@@ -30,5 +30,5 @@
       ]
     }
   },
-  "include": ["src", "src/components/app-sidebar.tsx", "src/components/auth/login-form.tsx", "src/components/nav-main.tsx", "src/components/nav-projects.tsx", "src/components/nav-user.tsx", "src/components/team-switcher.tsx", "src/components/ui"]
+  "include": ["src", "src/components/app-sidebar.tsx", "src/components/auth/login-form.tsx", "src/components/nav-main.tsx", "src/components/nav-projects.tsx", "src/components/nav-user.tsx", "src/components/team-switcher.tsx", "src/components/ui", "src/components/tabs/admin/AllEmployees.tsx", "src/components/tabs/admin/Dashboard.tsx", "src/components/tabs/admin/EmployeeProfile.tsx", "src/components/tabs/admin/PayrollTab.tsx", "src/components/tabs/admin/SalaryReportsTab.tsx"]
 }
