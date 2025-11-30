@@ -1,9 +1,15 @@
 // src/components/tabs/PayrollTab.tsx
 
 import React from 'react';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import {
   Table,
   TableBody,
@@ -11,18 +17,23 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { IconChevronsRight, IconFileText, IconCalendar } from "@tabler/icons-react";
+} from '@/components/ui/table';
+import {
+  IconChevronsRight,
+  IconFileText,
+  IconCalendar,
+} from '@tabler/icons-react';
 
 export function PayrollTab() {
   return (
     <div className="grid gap-6">
-            {/* Tab Title */}
-      <span>
-        <h1 className="text-2xl font-medium">Payroll</h1>
-        <p className="text-muted-foreground text-sm">Detailed salary overview</p>
-      </span>
-      {/* Tab Title End */}
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Payroll</h1>
+          <p className="text-muted-foreground">Detailed salary overview</p>
+        </div>
+      </div>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
@@ -48,7 +59,9 @@ export function PayrollTab() {
             </div>
             <div className="flex-1">
               <span className="text-muted-foreground">Status : </span>
-              <Badge className="bg-yellow-500 hover:bg-yellow-500 mt-1">Pending Approval</Badge>
+              <Badge className="bg-yellow-500 hover:bg-yellow-500 mt-1">
+                Pending Approval
+              </Badge>
             </div>
           </div>
         </CardContent>
@@ -78,7 +91,9 @@ export function PayrollTab() {
                 <TableCell className="font-medium">Oct 1, 2025</TableCell>
                 <TableCell>Sep 1 - Sep 30, 2025</TableCell>
                 <TableCell>$148,120.50</TableCell>
-                <TableCell><Badge>Processed</Badge></TableCell>
+                <TableCell>
+                  <Badge>Processed</Badge>
+                </TableCell>
                 <TableCell className="text-right">
                   <Button variant="ghost" size="sm">
                     <IconFileText className="h-4 w-4" />
@@ -89,7 +104,9 @@ export function PayrollTab() {
                 <TableCell className="font-medium">Sep 1, 2025</TableCell>
                 <TableCell>Aug 1 - Aug 31, 2025</TableCell>
                 <TableCell>$145,900.00</TableCell>
-                <TableCell><Badge>Processed</Badge></TableCell>
+                <TableCell>
+                  <Badge>Processed</Badge>
+                </TableCell>
                 <TableCell className="text-right">
                   <Button variant="ghost" size="sm">
                     <IconFileText className="h-4 w-4" />

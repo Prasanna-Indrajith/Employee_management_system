@@ -15,6 +15,7 @@ import EmployeeProfile from '@/components/tabs/admin/EmployeeProfile';
 import TimeSheet from '@/components/tabs/admin/TimeSheet';
 import TimeOffRequests from '@/components/tabs/admin/TimeOffRequests';
 import EditEmployeeProfile from '../tabs/admin/EditEmployeeProfile';
+import AddEmployee from '@/components/tabs/admin/AddEmployee';
 
 export default function Page() {
   const location = useLocation();
@@ -45,6 +46,7 @@ export default function Page() {
                     path="employees/:id/edit"
                     element={<EditEmployeeProfile />}
                   />
+                  <Route path="employees/add" element={<AddEmployee />} />
                   <Route path="employees/all" element={<AllEmployees />} />
                   <Route path="employees/:id" element={<EmployeeProfile />} />
 
