@@ -19,12 +19,13 @@ export interface Employee {
   hireDate: string;
   status: 'active' | 'inactive';
   managerId?: string;
-  address: {
-    street: string;
-    city: string;
-    state: string;
-    zipCode: string;
-  };
+  address: string;
+  // address: {
+  //   street: string;
+  //   city: string;
+  //   state: string;
+  //   zipCode: string;
+  // };
 }
 
 export interface AuthState {

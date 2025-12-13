@@ -1,88 +1,77 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { authAPI } from '../services/api'; // Import your api wrapper
+import type { User, LoginCredentials } from '../types'; //
 
-const AuthContext = createContext();
+// Define context shape
+interface AuthContextType {
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  login: (
+    credentials: LoginCredentials
+  ) => Promise<{ success: boolean; error?: string }>;
+  logout: () => void;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 };
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is logged in (check localStorage, API call, etc.)
-    const checkAuth = async () => {
+    const initAuth = async () => {
       try {
-        const token = localStorage.getItem('authToken');
+        const token = localStorage.getItem('token'); // api.ts uses 'token', not 'authToken'
         if (token) {
-          console.log(token);
-          // Verify token with your API
-          const response = await fetch('/api/verify-token', {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          
-          if (response.ok) {
-            const userData = await response.json();
-            setUser(userData);
+          const response = await authAPI.getCurrentUser(); // Use api.ts
+          if (response.success) {
+            setUser(response.data);
             setIsAuthenticated(true);
-          } else {
-            localStorage.removeItem('authToken');
           }
         }
       } catch (error) {
-        console.error('Auth check failed:', error);
+        console.error(error);
       } finally {
         setLoading(false);
       }
     };
-
-    checkAuth();
+    initAuth();
   }, []);
 
-  const login = async (email, password) => {
+  const login = async (credentials: LoginCredentials) => {
     try {
-      const response = await fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-
-      if (response.ok) {
-        const { token, user } = await response.json();
-        localStorage.setItem('authToken', token);
-        setUser(user);
+      const response = await authAPI.login(credentials); // Use api.ts
+      if (response.success) {
+        localStorage.setItem('token', response.data.token);
+        setUser(response.data.user);
         setIsAuthenticated(true);
         return { success: true };
-      } else {
-        return { success: false, error: 'Invalid credentials' };
       }
+      return { success: false, error: response.message };
     } catch (error) {
       return { success: false, error: 'Login failed' };
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('authToken');
+  const logout = async () => {
+    await authAPI.logout(); // Use api.ts
+    localStorage.removeItem('token');
     setUser(null);
     setIsAuthenticated(false);
   };
 
-  const value = {
-    user,
-    isAuthenticated,
-    loading,
-    login,
-    logout
-  };
-
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider
+      value={{ user, isAuthenticated, isLoading, login, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );

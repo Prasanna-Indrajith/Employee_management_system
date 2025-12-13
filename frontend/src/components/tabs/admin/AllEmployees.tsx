@@ -1,8 +1,12 @@
 'use client';
 
 import * as React from 'react';
+import { employeeAPI } from '@/services/api'; // Ensure this path matches your file structure
+import type { Employee } from '@/types'; // Import from your central types file
+import { useEffect, useState } from 'react';
+
 import { useNavigate } from 'react-router-dom';
-import { ArrowUpDown, ChevronDown, MoreHorizontal, Search } from 'lucide-react';
+import { ArrowUpDown, ChevronDown, Search } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -10,137 +14,36 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-
-// Employee data type
-export type Employee = {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  department: string;
-  position: string;
-  joinDate: string;
-  status: 'Active' | 'On Leave' | 'Inactive';
-  location: string;
-};
-
-// Mock employee data
-const employeeData: Employee[] = [
-  {
-    id: 'emp001',
-    name: 'John Doe',
-    email: 'john.doe@company.com',
-    phone: '+1 (555) 123-4567',
-    department: 'Engineering',
-    position: 'Senior Developer',
-    joinDate: '2022-01-15',
-    status: 'Active',
-    location: 'New York, NY',
-  },
-  {
-    id: 'emp002',
-    name: 'Jane Smith',
-    email: 'jane.smith@company.com',
-    phone: '+1 (555) 234-5678',
-    department: 'Marketing',
-    position: 'Marketing Manager',
-    joinDate: '2021-11-20',
-    status: 'Active',
-    location: 'Los Angeles, CA',
-  },
-  {
-    id: 'emp003',
-    name: 'Mike Johnson',
-    email: 'mike.johnson@company.com',
-    phone: '+1 (555) 345-6789',
-    department: 'Sales',
-    position: 'Sales Representative',
-    joinDate: '2023-03-10',
-    status: 'Active',
-    location: 'Chicago, IL',
-  },
-  {
-    id: 'emp004',
-    name: 'Sarah Wilson',
-    email: 'sarah.wilson@company.com',
-    phone: '+1 (555) 456-7890',
-    department: 'HR',
-    position: 'HR Specialist',
-    joinDate: '2022-07-05',
-    status: 'On Leave',
-    location: 'Boston, MA',
-  },
-  {
-    id: 'emp005',
-    name: 'David Brown',
-    email: 'david.brown@company.com',
-    phone: '+1 (555) 567-8901',
-    department: 'Engineering',
-    position: 'Frontend Developer',
-    joinDate: '2023-01-12',
-    status: 'Active',
-    location: 'Seattle, WA',
-  },
-  {
-    id: 'emp006',
-    name: 'Lisa Chen',
-    email: 'lisa.chen@company.com',
-    phone: '+1 (555) 678-9012',
-    department: 'Design',
-    position: 'UX Designer',
-    joinDate: '2022-09-18',
-    status: 'Active',
-    location: 'San Francisco, CA',
-  },
-  {
-    id: 'emp007',
-    name: 'Robert Taylor',
-    email: 'robert.taylor@company.com',
-    phone: '+1 (555) 789-0123',
-    department: 'Finance',
-    position: 'Financial Analyst',
-    joinDate: '2021-06-12',
-    status: 'Inactive',
-    location: 'Miami, FL',
-  },
-];
-
 export default function EmployeeDataTable() {
   const navigate = useNavigate();
 
-  const [employees, setEmployees] = React.useState<Employee[]>(employeeData);
-  const [nameFilter, setNameFilter] = React.useState('');
-  const [emailFilter, setEmailFilter] = React.useState('');
-  const [departmentFilter, setDepartmentFilter] = React.useState('');
-  const [selectedEmployees, setSelectedEmployees] = React.useState<Set<string>>(
+  // State for data
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // State for filters/sorting
+  const [nameFilter, setNameFilter] = useState('');
+  const [emailFilter, setEmailFilter] = useState('');
+  const [departmentFilter, setDepartmentFilter] = useState('');
+  const [selectedEmployees, setSelectedEmployees] = useState<Set<string>>(
     new Set()
   );
-  const [sortField, setSortField] = React.useState<keyof Employee | null>(null);
-  const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>(
-    'asc'
-  );
-  const [currentPage, setCurrentPage] = React.useState(1);
-  const [itemsPerPage] = React.useState(5);
-  const [visibleColumns, setVisibleColumns] = React.useState({
+
+  // Sorting state
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(5);
+
+  // Column visibility
+  const [visibleColumns, setVisibleColumns] = useState({
     name: true,
     email: true,
     department: true,
@@ -150,35 +53,63 @@ export default function EmployeeDataTable() {
     actions: true,
   });
 
-  // Function to handle view profile - you can customize this
+  // FETCH DATA ON MOUNT
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await employeeAPI.getAll();
+        if (response.success) {
+          setEmployees(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to load employees', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  // Handle view profile
   const handleViewProfile = (employee: Employee) => {
-    // console.log("View profile for:", employee)
-    // alert(`Viewing profile for ${employee.name}. You can customize this action!`)
     navigate(`/admin/employees/${employee.id}`);
   };
 
-  const deactivateAccount = (employee: Employee) => {
-    alert('Aye you sure?');
-  };
-
-  // Filter employees based on search criteria
+  // Filter employees
   const filteredEmployees = React.useMemo(() => {
-    return employeeData.filter((employee) => {
-      return (
-        employee.name.toLowerCase().includes(nameFilter.toLowerCase()) &&
-        employee.email.toLowerCase().includes(emailFilter.toLowerCase()) &&
-        (departmentFilter === '' || employee.department === departmentFilter)
-      );
+    return employees.filter((employee) => {
+      const fullName =
+        `${employee.firstName} ${employee.lastName}`.toLowerCase();
+      const matchesName = fullName.includes(nameFilter.toLowerCase());
+      const matchesEmail = employee.email
+        .toLowerCase()
+        .includes(emailFilter.toLowerCase());
+      const matchesDept =
+        departmentFilter === '' || employee.department === departmentFilter;
+
+      return matchesName && matchesEmail && matchesDept;
     });
-  }, [nameFilter, emailFilter, departmentFilter]);
+  }, [employees, nameFilter, emailFilter, departmentFilter]);
 
   // Sort employees
   const sortedEmployees = React.useMemo(() => {
     if (!sortField) return filteredEmployees;
 
     return [...filteredEmployees].sort((a, b) => {
-      const aValue = a[sortField];
-      const bValue = b[sortField];
+      let aValue: any = a[sortField as keyof Employee];
+      let bValue: any = b[sortField as keyof Employee];
+
+      // Handle special sorting for "Name" (combining first and last)
+      if (sortField === 'name') {
+        aValue = `${a.firstName} ${a.lastName}`;
+        bValue = `${b.firstName} ${b.lastName}`;
+      }
+
+      // Handle date sorting
+      if (sortField === 'hireDate') {
+        aValue = new Date(a.hireDate).getTime();
+        bValue = new Date(b.hireDate).getTime();
+      }
 
       if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
       if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
@@ -186,7 +117,7 @@ export default function EmployeeDataTable() {
     });
   }, [filteredEmployees, sortField, sortDirection]);
 
-  // Paginate employees
+  // Paginate
   const paginatedEmployees = React.useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     return sortedEmployees.slice(startIndex, startIndex + itemsPerPage);
@@ -194,8 +125,8 @@ export default function EmployeeDataTable() {
 
   const totalPages = Math.ceil(sortedEmployees.length / itemsPerPage);
 
-  // Handle sorting
-  const handleSort = (field: keyof Employee) => {
+  // Handle Sort Click
+  const handleSort = (field: string) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
@@ -204,7 +135,7 @@ export default function EmployeeDataTable() {
     }
   };
 
-  // Handle select all
+  // Selection Logic
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
       setSelectedEmployees(new Set(paginatedEmployees.map((emp) => emp.id)));
@@ -213,7 +144,6 @@ export default function EmployeeDataTable() {
     }
   };
 
-  // Handle individual selection
   const handleSelectEmployee = (employeeId: string, checked: boolean) => {
     const newSelected = new Set(selectedEmployees);
     if (checked) {
@@ -224,30 +154,39 @@ export default function EmployeeDataTable() {
     setSelectedEmployees(newSelected);
   };
 
-  // Get status badge
+  // Badge Logic (using 'active' | 'inactive' from your types)
   const getStatusBadge = (status: string) => {
-    const statusColors = {
-      Active: 'bg-green-100 text-green-800 hover:bg-green-100',
-      'On Leave': 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100',
-      Inactive: 'bg-red-100 text-red-800 hover:bg-red-100',
-    };
+    const normalizedStatus = status.toLowerCase();
 
-    return (
-      <Badge
-        className={
-          statusColors[status as keyof typeof statusColors] ||
-          'bg-gray-100 text-gray-800 hover:bg-gray-100'
-        }
-      >
-        {status}
-      </Badge>
-    );
+    if (normalizedStatus === 'active') {
+      return (
+        <Badge className="bg-green-100 text-green-800 hover:bg-green-100 border-green-200">
+          Active
+        </Badge>
+      );
+    } else if (normalizedStatus === 'inactive') {
+      return (
+        <Badge className="bg-red-100 text-red-800 hover:bg-red-100 border-red-200">
+          Inactive
+        </Badge>
+      );
+    } else {
+      return <Badge variant="outline">{status}</Badge>;
+    }
   };
 
-  // Get unique departments for filter
+  // Unique Departments
   const departments = React.useMemo(() => {
-    return [...new Set(employeeData.map((emp) => emp.department))];
-  }, []);
+    return [...new Set(employees.map((emp) => emp.department))];
+  }, [employees]);
+
+  if (loading) {
+    return (
+      <div className="p-8 text-center text-muted-foreground">
+        Loading employees...
+      </div>
+    );
+  }
 
   return (
     <div className="w-full space-y-4">
@@ -263,7 +202,7 @@ export default function EmployeeDataTable() {
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Filters Bar */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
         <div className="relative">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -324,13 +263,15 @@ export default function EmployeeDataTable() {
               <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground w-[50px]">
                 <Checkbox
                   checked={
-                    selectedEmployees.size === paginatedEmployees.length &&
-                    paginatedEmployees.length > 0
+                    paginatedEmployees.length > 0 &&
+                    selectedEmployees.size === paginatedEmployees.length
                   }
                   onCheckedChange={handleSelectAll}
                   aria-label="Select all"
                 />
               </th>
+
+              {/* NAME COLUMN */}
               {visibleColumns.name && (
                 <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
                   <Button
@@ -343,6 +284,8 @@ export default function EmployeeDataTable() {
                   </Button>
                 </th>
               )}
+
+              {/* EMAIL COLUMN */}
               {visibleColumns.email && (
                 <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
                   <Button
@@ -355,6 +298,8 @@ export default function EmployeeDataTable() {
                   </Button>
                 </th>
               )}
+
+              {/* DEPARTMENT COLUMN */}
               {visibleColumns.department && (
                 <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
                   <Button
@@ -367,6 +312,7 @@ export default function EmployeeDataTable() {
                   </Button>
                 </th>
               )}
+
               {visibleColumns.position && (
                 <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
                   Position
@@ -402,14 +348,17 @@ export default function EmployeeDataTable() {
                       onCheckedChange={(checked) =>
                         handleSelectEmployee(employee.id, checked as boolean)
                       }
-                      aria-label={`Select ${employee.name}`}
+                      aria-label={`Select ${employee.firstName}`}
                     />
                   </td>
+
+                  {/* Name (Combined First + Last) */}
                   {visibleColumns.name && (
                     <td className="p-4 align-middle font-medium">
-                      {employee.name}
+                      {employee.firstName} {employee.lastName}
                     </td>
                   )}
+
                   {visibleColumns.email && (
                     <td className="p-4 align-middle">{employee.email}</td>
                   )}
@@ -424,21 +373,21 @@ export default function EmployeeDataTable() {
                       {getStatusBadge(employee.status)}
                     </td>
                   )}
+
+                  {/* Hire Date */}
                   {visibleColumns.joinDate && (
-                    <td className="p-4 align-middle">{employee.joinDate}</td>
+                    <td className="p-4 align-middle">{employee.hireDate}</td>
                   )}
+
                   {visibleColumns.actions && (
                     <td className="p-4 align-middle">
-                      <div>
-                        <DropdownMenu>
-                          <Button
-                            variant={'outline'}
-                            onClick={() => handleViewProfile(employee)}
-                          >
-                            View Profile
-                          </Button>
-                        </DropdownMenu>
-                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleViewProfile(employee)}
+                      >
+                        View Profile
+                      </Button>
                     </td>
                   )}
                 </tr>
@@ -459,7 +408,7 @@ export default function EmployeeDataTable() {
         </table>
       </div>
 
-      {/* Pagination */}
+      {/* Pagination Controls */}
       <div className="flex items-center justify-between space-x-2 py-4">
         <div className="text-sm text-muted-foreground">
           {selectedEmployees.size} of {sortedEmployees.length} row(s) selected.

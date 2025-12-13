@@ -3,9 +3,9 @@ import { SalaryReportsTab } from '../tabs/admin/SalaryReportsTab';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 
 import { AppSidebar } from '@/components/app-sidebar';
-import { ChartAreaInteractive } from '@/components/chart-area-interactive';
-import { DataTable } from '@/components/data-table';
-import { SectionCards } from '@/components/section-cards';
+// import { ChartAreaInteractive } from '@/components/chart-area-interactive';
+// import { DataTable } from '@/components/data-table';
+// import { SectionCards } from '@/components/section-cards';
 import { SiteHeader } from '@/components/site-header';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 
@@ -16,6 +16,7 @@ import TimeSheet from '@/components/tabs/admin/TimeSheet';
 import TimeOffRequests from '@/components/tabs/admin/TimeOffRequests';
 import EditEmployeeProfile from '../tabs/admin/EditEmployeeProfile';
 import AddEmployee from '@/components/tabs/admin/AddEmployee';
+import AdminProfile from '../tabs/admin/AdminProfile';
 
 export default function Page() {
   const location = useLocation();
@@ -39,6 +40,9 @@ export default function Page() {
                 <Routes>
                   {/* Dashboard */}
                   <Route path="dashboard" element={<Dashboard />} />
+
+                  {/* Admin Profile Routes */}
+                  <Route path="profile" element={<AdminProfile />} />
 
                   {/* Employee Routes */}
                   {/* Edit Users Profile */}

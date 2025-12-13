@@ -1,5 +1,16 @@
+'use client';
+
 import React, { useState } from 'react';
-import { Calendar, Clock, Filter, Download, Plus } from 'lucide-react';
+import {
+  Calendar,
+  Clock,
+  Filter,
+  Download,
+  Users,
+  Briefcase,
+  Search,
+  Timer,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -7,6 +18,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardAction, // Assumed this is exported based on your snippet
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -85,21 +97,17 @@ const timesheetData = [
 export default function TimeSheet() {
   const [selectedDate, setSelectedDate] = useState('2024-01-15');
   const [selectedDepartment, setSelectedDepartment] = useState('all');
-  // const [selectedStatus, setSelectedStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Filter data based on selections
+  // Filter data
   const filteredData = timesheetData.filter((entry) => {
     const matchesSearch =
       entry.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       entry.employeeId.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesDepartment =
       selectedDepartment === 'all' || entry.department === selectedDepartment;
-    // const matchesStatus =
-    //   selectedStatus === 'all' || entry.status === selectedStatus;
 
     return matchesSearch && matchesDepartment;
-    // return matchesSearch && matchesDepartment && matchesStatus;
   });
 
   // Calculate totals
@@ -108,68 +116,76 @@ export default function TimeSheet() {
     return sum + hours;
   }, 0);
 
-  const approvedEntries = filteredData.filter(
-    (entry) => entry.status === 'Approved'
-  ).length;
-  const pendingEntries = filteredData.filter(
-    (entry) => entry.status === 'Pending'
-  ).length;
-
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            TimeSheet Management
-          </h1>
+          <h1 className="text-3xl font-bold tracking-tight">Timesheets</h1>
           <p className="text-muted-foreground">
-            Track and manage employee work hours
+            Monitor daily attendance and work hours.
           </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline">
             <Download className="mr-2 h-4 w-4" />
-            Export
+            Export Report
           </Button>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Total Entries</CardTitle>
+      {/* Stats Cards - Updated to match SectionCards style */}
+      <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 md:grid-cols-2 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs">
+        {/* Card 1: Total Entries */}
+        <Card className="@container/card">
+          <CardHeader>
+            <CardDescription>Total Entries</CardDescription>
+            <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+              {filteredData.length}
+            </CardTitle>
+            <CardAction>
+              <Badge variant="outline">
+                <Users className="size-4 mr-1" />
+                Records
+              </Badge>
+            </CardAction>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{filteredData.length}</div>
-          </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Total Hours</CardTitle>
+
+        {/* Card 2: Total Hours */}
+        <Card className="@container/card">
+          <CardHeader>
+            <CardDescription>Total Man-Hours</CardDescription>
+            <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+              {totalHours}h
+            </CardTitle>
+            <CardAction>
+              <Badge variant="outline">
+                <Timer className="size-4 mr-1" />
+                Work Time
+              </Badge>
+            </CardAction>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalHours}h</div>
-          </CardContent>
         </Card>
       </div>
 
       {/* Filters */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Filters
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            Filter Records
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by name or ID..."
+                placeholder="Search employee name or ID..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
               />
             </div>
             <Select
@@ -200,9 +216,12 @@ export default function TimeSheet() {
       {/* TimeSheet Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Daily TimeSheet</CardTitle>
+          <CardTitle>Daily Log</CardTitle>
           <CardDescription>
-            Employee work hours for {selectedDate}
+            Detailed work hours for{' '}
+            <span className="font-semibold text-foreground">
+              {selectedDate}
+            </span>
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -211,7 +230,7 @@ export default function TimeSheet() {
               <thead className="[&_tr]:border-b">
                 <tr className="border-b transition-colors hover:bg-muted/50">
                   <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
-                    Employee
+                    Employee Details
                   </th>
                   <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
                     Department
@@ -222,9 +241,6 @@ export default function TimeSheet() {
                   <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
                     Clock Out
                   </th>
-                  {/* <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
-                    Break Time
-                  </th> */}
                   <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
                     Total Hours
                   </th>
@@ -237,40 +253,65 @@ export default function TimeSheet() {
                       key={entry.id}
                       className="border-b transition-colors hover:bg-muted/50"
                     >
+                      {/* Employee Column */}
                       <td className="p-4 align-middle">
-                        <div>
-                          <div className="font-medium">
+                        <div className="flex flex-col">
+                          <span className="font-medium">
                             {entry.employeeName}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
+                          </span>
+                          <span className="text-xs text-muted-foreground font-mono">
                             {entry.employeeId}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Department Column */}
+                      <td className="p-4 align-middle">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1 bg-secondary rounded-md">
+                            <Briefcase className="h-3 w-3 text-muted-foreground" />
                           </div>
+                          <span>{entry.department}</span>
                         </div>
                       </td>
-                      <td className="p-4 align-middle">{entry.department}</td>
+
+                      {/* Clock In */}
                       <td className="p-4 align-middle">
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-4 w-4 text-muted-foreground" />
-                          {entry.clockIn}
+                        <div className="flex items-center gap-2">
+                          <div className="p-1 rounded-md bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400">
+                            <Clock className="h-3.5 w-3.5" />
+                          </div>
+                          <span className="font-medium text-green-700 dark:text-green-300">
+                            {entry.clockIn}
+                          </span>
                         </div>
                       </td>
+
+                      {/* Clock Out */}
                       <td className="p-4 align-middle">
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-4 w-4 text-muted-foreground" />
-                          {entry.clockOut}
+                        <div className="flex items-center gap-2">
+                          <div className="p-1 rounded-md bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400">
+                            <Clock className="h-3.5 w-3.5" />
+                          </div>
+                          <span className="font-medium text-orange-700 dark:text-orange-300">
+                            {entry.clockOut}
+                          </span>
                         </div>
                       </td>
-                      {/* <td className="p-4 align-middle">{entry.breakTime}</td> */}
-                      <td className="p-4 align-middle font-medium">
-                        {entry.totalHours}
+
+                      {/* Total Hours */}
+                      <td className="p-4 align-middle">
+                        <Badge variant="outline" className="font-mono">
+                          {entry.totalHours}
+                        </Badge>
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
                     <td
-                      colSpan={7}
-                      className="h-24 text-center p-4 align-middle"
+                      colSpan={5}
+                      className="h-24 text-center p-4 align-middle text-muted-foreground"
                     >
                       No timesheet entries found.
                     </td>

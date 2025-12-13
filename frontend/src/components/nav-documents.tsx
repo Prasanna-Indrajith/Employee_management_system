@@ -1,43 +1,26 @@
-"use client"
+'use client';
 
-import { Link } from 'react-router-dom'
-
-import {
-  IconDots,
-  IconFolder,
-  IconShare3,
-  IconTrash,
-  type Icon,
-} from "@tabler/icons-react"
-
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { Link } from 'react-router-dom';
+import { type Icon } from '@tabler/icons-react';
 import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarMenu,
-  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
-} from "@/components/ui/sidebar"
+} from '@/components/ui/sidebar';
 
-export function NavDocuments(
-  {items, sectionName} : {
+export function NavDocuments({
+  items,
+  sectionName,
+}: {
   items: {
-    name: string
-    url: string
-    icon: Icon
-  }[],
-  sectionName : string
+    name: string;
+    url: string;
+    icon: Icon;
+  }[];
+  sectionName: string;
 }) {
-  const { isMobile } = useSidebar()
-
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
       <SidebarGroupLabel>{sectionName}</SidebarGroupLabel>
@@ -54,5 +37,5 @@ export function NavDocuments(
         ))}
       </SidebarMenu>
     </SidebarGroup>
-  )
+  );
 }

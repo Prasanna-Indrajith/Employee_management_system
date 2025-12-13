@@ -17,15 +17,7 @@ import {
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,11 +37,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import DeleteConfirmationCard, {
-  DeleteConfirmationExample,
-} from '../../ui/delete-confirmation';
+import DeleteConfirmationCard from '../../ui/delete-confirmation';
 // import { Button } from "@/components/ui/button"
 
 // Employee data type
