@@ -1,16 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import {
-  Calendar,
-  Clock,
-  Filter,
-  Download,
-  Users,
-  Briefcase,
-  Search,
-  Timer,
-} from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Filter, Download, Users, Search, Timer, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -18,7 +9,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  CardAction, // Assumed this is exported based on your snippet
+  CardAction,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -29,81 +20,46 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-
-// Mock timesheet data
-const timesheetData = [
-  {
-    id: 1,
-    employeeName: 'John Doe',
-    employeeId: 'emp001',
-    date: '2024-01-15',
-    clockIn: '09:00',
-    clockOut: '17:30',
-    breakTime: '1h',
-    totalHours: '7.5h',
-    status: 'Approved',
-    department: 'Engineering',
-  },
-  {
-    id: 2,
-    employeeName: 'Jane Smith',
-    employeeId: 'emp002',
-    date: '2024-01-15',
-    clockIn: '08:30',
-    clockOut: '17:00',
-    breakTime: '45min',
-    totalHours: '7.75h',
-    status: 'Pending',
-    department: 'Marketing',
-  },
-  {
-    id: 3,
-    employeeName: 'Mike Johnson',
-    employeeId: 'emp003',
-    date: '2024-01-15',
-    clockIn: '09:15',
-    clockOut: '18:00',
-    breakTime: '1h',
-    totalHours: '7.75h',
-    status: 'Approved',
-    department: 'Sales',
-  },
-  {
-    id: 4,
-    employeeName: 'Sarah Wilson',
-    employeeId: 'emp004',
-    date: '2024-01-15',
-    clockIn: '08:45',
-    clockOut: '16:45',
-    breakTime: '30min',
-    totalHours: '7.5h',
-    status: 'Rejected',
-    department: 'HR',
-  },
-  {
-    id: 5,
-    employeeName: 'David Brown',
-    employeeId: 'emp005',
-    date: '2024-01-15',
-    clockIn: '09:30',
-    clockOut: '17:45',
-    breakTime: '1h 15min',
-    totalHours: '7h',
-    status: 'Pending',
-    department: 'Engineering',
-  },
-];
+import { employeeAPI } from '@/services/api'; // Import API
 
 export default function TimeSheet() {
-  const [selectedDate, setSelectedDate] = useState('2024-01-15');
+  // 1. State for Data
+  const [timesheets, setTimesheets] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // 2. State for Filters
+  const [selectedDate, setSelectedDate] = useState(
+    new Date().toISOString().split('T')[0]
+  ); // Default to today
   const [selectedDepartment, setSelectedDepartment] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Filter data
-  const filteredData = timesheetData.filter((entry) => {
+  // 3. Fetch Data from API
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // Fetch data for the specific selected Date
+        const response = await employeeAPI.getTimesheets(selectedDate);
+        if (response.success) {
+          setTimesheets(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to load timesheets', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [selectedDate]); // Re-run when date changes
+
+  // 4. Client-side Filtering (Search & Department)
+  const filteredData = timesheets.filter((entry) => {
     const matchesSearch =
       entry.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       entry.employeeId.toLowerCase().includes(searchTerm.toLowerCase());
+
     const matchesDepartment =
       selectedDepartment === 'all' || entry.department === selectedDepartment;
 
@@ -112,8 +68,10 @@ export default function TimeSheet() {
 
   // Calculate totals
   const totalHours = filteredData.reduce((sum, entry) => {
-    const hours = parseFloat(entry.totalHours.replace('h', ''));
-    return sum + hours;
+    // Simple calculation: You might need more complex math if hours are strings
+    // Assuming backend returns hours, or we calculate diff.
+    // For now, let's just count entries or use a safe fallback.
+    return sum + 8; // Placeholder: 8 hours per person
   }, 0);
 
   return (
@@ -134,35 +92,35 @@ export default function TimeSheet() {
         </div>
       </div>
 
-      {/* Stats Cards - Updated to match SectionCards style */}
-      <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 md:grid-cols-2 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs">
-        {/* Card 1: Total Entries */}
-        <Card className="@container/card">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card>
           <CardHeader>
-            <CardDescription>Total Entries</CardDescription>
-            <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              {filteredData.length}
+            <CardDescription>Total Present</CardDescription>
+            <CardTitle className="text-2xl font-semibold">
+              {loading ? '-' : filteredData.length}
             </CardTitle>
             <CardAction>
               <Badge variant="outline">
-                <Users className="size-4 mr-1" />
-                Records
+                {' '}
+                <Users className="size-4 mr-1" /> Staff
               </Badge>
             </CardAction>
           </CardHeader>
         </Card>
 
-        {/* Card 2: Total Hours */}
-        <Card className="@container/card">
+        <Card>
           <CardHeader>
-            <CardDescription>Total Man-Hours</CardDescription>
-            <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              {totalHours}h
+            <CardDescription>Late Arrivals</CardDescription>
+            <CardTitle className="text-2xl font-semibold text-orange-600">
+              {loading
+                ? '-'
+                : filteredData.filter((x) => x.status === 'Late').length}
             </CardTitle>
             <CardAction>
               <Badge variant="outline">
-                <Timer className="size-4 mr-1" />
-                Work Time
+                {' '}
+                <Timer className="size-4 mr-1" /> Alert
               </Badge>
             </CardAction>
           </CardHeader>
@@ -179,15 +137,18 @@ export default function TimeSheet() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-4">
+            {/* Search */}
             <div className="relative flex-1">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search employee name or ID..."
+                placeholder="Search employee..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-9"
               />
             </div>
+
+            {/* Department Dropdown (Hardcoded for now, or fetch from Lookups API) */}
             <Select
               value={selectedDepartment}
               onValueChange={setSelectedDepartment}
@@ -203,6 +164,8 @@ export default function TimeSheet() {
                 <SelectItem value="HR">HR</SelectItem>
               </SelectContent>
             </Select>
+
+            {/* Date Picker */}
             <Input
               type="date"
               value={selectedDate}
@@ -213,113 +176,79 @@ export default function TimeSheet() {
         </CardContent>
       </Card>
 
-      {/* TimeSheet Table */}
+      {/* Table */}
       <Card>
-        <CardHeader>
-          <CardTitle>Daily Log</CardTitle>
-          <CardDescription>
-            Detailed work hours for{' '}
-            <span className="font-semibold text-foreground">
-              {selectedDate}
-            </span>
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full caption-bottom text-sm">
-              <thead className="[&_tr]:border-b">
-                <tr className="border-b transition-colors hover:bg-muted/50">
-                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
-                    Employee Details
-                  </th>
-                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
-                    Department
-                  </th>
-                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
-                    Clock In
-                  </th>
-                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
-                    Clock Out
-                  </th>
-                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
-                    Total Hours
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="[&_tr:last-child]:border-0">
-                {filteredData.length > 0 ? (
-                  filteredData.map((entry) => (
-                    <tr
-                      key={entry.id}
-                      className="border-b transition-colors hover:bg-muted/50"
-                    >
-                      {/* Employee Column */}
-                      <td className="p-4 align-middle">
-                        <div className="flex flex-col">
-                          <span className="font-medium">
-                            {entry.employeeName}
-                          </span>
-                          <span className="text-xs text-muted-foreground font-mono">
-                            {entry.employeeId}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* Department Column */}
-                      <td className="p-4 align-middle">
-                        <div className="flex items-center gap-2">
-                          <div className="p-1 bg-secondary rounded-md">
-                            <Briefcase className="h-3 w-3 text-muted-foreground" />
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="flex justify-center p-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full caption-bottom text-sm">
+                <thead className="[&_tr]:border-b">
+                  <tr className="border-b bg-muted/50">
+                    <th className="h-12 px-4 text-left font-medium">
+                      Employee
+                    </th>
+                    <th className="h-12 px-4 text-left font-medium">Dept</th>
+                    <th className="h-12 px-4 text-left font-medium">In</th>
+                    <th className="h-12 px-4 text-left font-medium">Out</th>
+                    <th className="h-12 px-4 text-left font-medium">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredData.length > 0 ? (
+                    filteredData.map((entry) => (
+                      <tr key={entry.id} className="border-b hover:bg-muted/50">
+                        <td className="p-4">
+                          <div className="flex flex-col">
+                            <span className="font-medium">
+                              {entry.employeeName}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {entry.employeeId}
+                            </span>
                           </div>
-                          <span>{entry.department}</span>
-                        </div>
-                      </td>
-
-                      {/* Clock In */}
-                      <td className="p-4 align-middle">
-                        <div className="flex items-center gap-2">
-                          <div className="p-1 rounded-md bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400">
-                            <Clock className="h-3.5 w-3.5" />
-                          </div>
-                          <span className="font-medium text-green-700 dark:text-green-300">
-                            {entry.clockIn}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* Clock Out */}
-                      <td className="p-4 align-middle">
-                        <div className="flex items-center gap-2">
-                          <div className="p-1 rounded-md bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400">
-                            <Clock className="h-3.5 w-3.5" />
-                          </div>
-                          <span className="font-medium text-orange-700 dark:text-orange-300">
-                            {entry.clockOut}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* Total Hours */}
-                      <td className="p-4 align-middle">
-                        <Badge variant="outline" className="font-mono">
-                          {entry.totalHours}
-                        </Badge>
+                        </td>
+                        <td className="p-4">
+                          <Badge variant="secondary" className="font-normal">
+                            {entry.department}
+                          </Badge>
+                        </td>
+                        <td className="p-4 text-green-600 font-medium">
+                          {entry.clockIn || '--:--'}
+                        </td>
+                        <td className="p-4 text-orange-600 font-medium">
+                          {entry.clockOut || '--:--'}
+                        </td>
+                        <td className="p-4">
+                          <Badge
+                            variant={
+                              entry.status === 'Late'
+                                ? 'destructive'
+                                : 'default'
+                            }
+                          >
+                            {entry.status}
+                          </Badge>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan={5}
+                        className="h-24 text-center text-muted-foreground"
+                      >
+                        No records found for this date.
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td
-                      colSpan={5}
-                      className="h-24 text-center p-4 align-middle text-muted-foreground"
-                    >
-                      No timesheet entries found.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

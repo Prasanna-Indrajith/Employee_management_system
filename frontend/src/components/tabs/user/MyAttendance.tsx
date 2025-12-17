@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import { useEffect, useState } from 'react';
 import {
   Card,
   CardContent,
@@ -9,57 +9,71 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Clock, CalendarDays, MapPin } from 'lucide-react';
+import { Clock, CalendarDays } from 'lucide-react';
+// Import your new profileAPI
+import { profileAPI } from '@/services/api'; // Adjust path to where your api.ts is located
 
 export default function MyAttendance() {
-  // Mock Data (Day name removed)
-  const attendanceData = [
-    {
-      id: 1,
-      date: 'Nov 30, 2025',
-      clockIn: '08:30 AM',
-      clockOut: '-',
-      totalHours: 'Running...',
-      status: 'Present',
-      location: 'Office',
-    },
-    {
-      id: 2,
-      date: 'Nov 29, 2025',
-      clockIn: '08:35 AM',
-      clockOut: '05:05 PM',
-      totalHours: '8h 30m',
-      status: 'Late',
-      location: 'Remote',
-    },
-    {
-      id: 3,
-      date: 'Nov 28, 2025',
-      clockIn: '08:25 AM',
-      clockOut: '05:00 PM',
-      totalHours: '8h 35m',
-      status: 'Present',
-      location: 'Office',
-    },
-    {
-      id: 4,
-      date: 'Nov 27, 2025',
-      clockIn: '08:30 AM',
-      clockOut: '05:15 PM',
-      totalHours: '8h 45m',
-      status: 'Present',
-      location: 'Office',
-    },
-    {
-      id: 5,
-      date: 'Nov 26, 2025',
-      clockIn: '-',
-      clockOut: '-',
-      totalHours: '0h 00m',
-      status: 'Absent',
-      location: '-',
-    },
-  ];
+  const [attendanceData, setAttendanceData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchAttendance = async () => {
+      try {
+        setLoading(true);
+
+        // 1. CALL THE API
+        // No need to manually get ID or Token. The api.ts interceptor handles it.
+        const response = await profileAPI.getMyAttendance();
+
+        if (response.success && response.data) {
+          // 2. FORMAT THE DATA
+          // We map the raw backend data to your UI structure
+          const formattedData = response.data.map((item: any) => ({
+            id: item.id,
+            date: formatDate(item.date || item.clockIn),
+            clockIn: formatTime(item.clockIn),
+            clockOut: item.clockOut ? formatTime(item.clockOut) : '-',
+            status: item.status || 'Absent',
+            // If your backend doesn't send location, default to 'Office'
+            location: item.location || 'Office',
+          }));
+
+          setAttendanceData(formattedData);
+        } else {
+          setError('Failed to load attendance records.');
+        }
+      } catch (err: any) {
+        console.error('Error fetching attendance:', err);
+        setError('Could not load attendance. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAttendance();
+  }, []);
+
+  // --- Helper Functions for Formatting ---
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  };
+
+  const formatTime = (timeString: string) => {
+    if (!timeString) return '-';
+    return new Date(timeString).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
 
   return (
     <div className="space-y-4">
@@ -70,7 +84,7 @@ export default function MyAttendance() {
         <CardHeader>
           <CardTitle>Attendance History</CardTitle>
           <CardDescription>
-            Detailed logs of your check-ins, check-outs, and work duration.
+            Detailed logs of your check-ins and check-outs.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -88,90 +102,82 @@ export default function MyAttendance() {
                     Check Out
                   </th>
                   <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
-                    Location
-                  </th>
-                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
-                    Total Hours
-                  </th>
-                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
                     Status
                   </th>
                 </tr>
               </thead>
               <tbody className="[&_tr:last-child]:border-0">
-                {attendanceData.length > 0 ? (
+                {loading ? (
+                  <tr>
+                    <td
+                      colSpan={4}
+                      className="h-24 text-center p-4 align-middle text-muted-foreground"
+                    >
+                      Loading attendance records...
+                    </td>
+                  </tr>
+                ) : error ? (
+                  <tr>
+                    <td
+                      colSpan={4}
+                      className="h-24 text-center p-4 align-middle text-red-500"
+                    >
+                      {error}
+                    </td>
+                  </tr>
+                ) : attendanceData.length > 0 ? (
                   attendanceData.map((entry) => (
                     <tr
                       key={entry.id}
                       className="border-b transition-colors hover:bg-muted/50"
                     >
-                      {/* Date Column */}
                       <td className="p-4 align-middle">
                         <div className="font-medium flex items-center gap-2">
                           <CalendarDays className="h-4 w-4 text-muted-foreground" />
                           {entry.date}
                         </div>
                       </td>
-
-                      {/* Check In */}
                       <td className="p-4 align-middle">
                         <div className="flex items-center gap-2">
                           <Clock className="h-4 w-4 text-green-600" />
                           <span className="font-medium">{entry.clockIn}</span>
                         </div>
                       </td>
-
-                      {/* Check Out */}
                       <td className="p-4 align-middle">
                         <div className="flex items-center gap-2">
                           <Clock className="h-4 w-4 text-orange-600" />
                           <span>{entry.clockOut}</span>
                         </div>
                       </td>
-
-                      {/* Location */}
                       <td className="p-4 align-middle">
-                        <div className="flex items-center gap-1 text-muted-foreground">
-                          {entry.location !== '-' && (
-                            <MapPin className="h-3 w-3" />
-                          )}
-                          {entry.location}
-                        </div>
-                      </td>
-
-                      {/* Total Hours */}
-                      <td className="p-4 align-middle font-medium">
-                        {entry.totalHours}
-                      </td>
-
-                      {/* Status Badge */}
-                      <td className="p-4 align-middle">
-                        {entry.status === 'Present' && (
-                          <Badge
-                            variant="outline"
-                            className="text-green-600 border-green-200 bg-green-50"
-                          >
-                            Present
-                          </Badge>
-                        )}
-                        {entry.status === 'Late' && (
-                          <Badge
-                            variant="outline"
-                            className="text-orange-600 border-orange-200 bg-orange-50"
-                          >
-                            Late
-                          </Badge>
-                        )}
-                        {entry.status === 'Absent' && (
-                          <Badge variant="destructive">Absent</Badge>
-                        )}
+                        <Badge
+                          variant={
+                            entry.status === 'Present'
+                              ? 'default' // or use your custom styles
+                              : entry.status === 'Late'
+                              ? 'secondary'
+                              : entry.status === 'Absent'
+                              ? 'destructive'
+                              : 'outline'
+                          }
+                          // Keep your custom classNames if you prefer them over standard variants
+                          className={
+                            entry.status === 'Present'
+                              ? 'text-green-600 border-green-200 bg-green-50 hover:bg-green-50'
+                              : entry.status === 'Late'
+                              ? 'text-orange-600 border-orange-200 bg-orange-50 hover:bg-orange-50'
+                              : ''
+                          }
+                        >
+                          {entry.status}
+                        </Badge>
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
                     <td
-                      colSpan={6}
+                      colSpan={4}
                       className="h-24 text-center p-4 align-middle text-muted-foreground"
                     >
                       No attendance records found.

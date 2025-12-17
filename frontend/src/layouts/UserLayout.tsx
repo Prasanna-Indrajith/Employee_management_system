@@ -10,8 +10,8 @@ import UserDashboard from '@/components/tabs/user/Dashboard';
 import MyAttendance from '@/components/tabs/user/MyAttendance';
 import MyLeaves from '@/components/tabs/user/MyLeaves';
 import MyPayslips from '@/components/tabs/user/MyPayslips';
-import UserProfile from '../tabs/user/Profile';
-import EditUserProfile from '../tabs/user/EditProfile';
+import UserProfile from '../components/tabs/user/Profile';
+import EditUserProfile from '../components/tabs/user/EditProfile';
 
 export default function UserPage() {
   const location = useLocation();

@@ -24,35 +24,38 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext'; // <--- 1. Import the hook
 
-export function NavUser({
-  user,
-  role, // Accept role to know where to send them
-}: {
-  user: {
-    name: string;
-    email: string;
-    avatar: string;
-  };
-  role?: 'admin' | 'user';
-}) {
+export function NavUser() {
+  // 2. Get user and logout function directly from Context
+  const { user, logout } = useAuth();
   const { isMobile } = useSidebar();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    // 1. Clear any stored tokens (Example)
-    // localStorage.removeItem('token');
+  // Safety check: If for some reason user is null, don't render
+  if (!user) return null;
 
-    // 2. Redirect to login
-    navigate('/login');
+  // 3. Helper to get initials (e.g., "John Doe" -> "JD")
+  const getInitials = (name: string | undefined | null) => {
+    // Safety Check: If name is missing, return a default
+    if (!name) return 'CN';
+
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  };
+
+  const handleLogout = () => {
+    logout(); // 4. Call the context logout (handles cleanup & redirect)
   };
 
   const handleProfileClick = () => {
-    if (role === 'admin') {
-      // Admins might not have a profile view yet, or it's a settings page
+    if (user.role === 'admin') {
       navigate('/admin/profile');
     } else {
-      // Users go to the profile page we created earlier
       navigate('/user/profile');
     }
   };
@@ -67,14 +70,16 @@ export function NavUser({
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                {/* 5. Use user data from context */}
+                <AvatarImage src="" alt={user.fullName || 'User'} />
+                <AvatarFallback className="rounded-lg">
+                  {getInitials(user.fullName)}
+                </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                {/* Fixed Typo here (removed 'ss') */}
-                <span className="truncate font-medium">{user.name}</span>
+                {/* <span className="truncate font-medium">{user.fullName}</span> */}
                 <span className="text-muted-foreground truncate text-xs">
-                  {user.email}
+                  {user.fullName}
                 </span>
               </div>
               <IconDotsVertical className="ml-auto size-4" />
@@ -89,11 +94,13 @@ export function NavUser({
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={user.avatar} alt={user.name} />
-                  <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                  <AvatarImage src="" alt={user.fullName} />
+                  <AvatarFallback className="rounded-lg">
+                    {getInitials(user.fullName)}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{user.name}</span>
+                  <span className="truncate font-medium">{user.fullName}</span>
                   <span className="text-muted-foreground truncate text-xs">
                     {user.email}
                   </span>
@@ -109,12 +116,6 @@ export function NavUser({
                 <IconUserCircle className="mr-2 h-4 w-4" />
                 Profile
               </DropdownMenuItem>
-              {/* {role === 'admin' && (
-                <DropdownMenuItem className="cursor-pointer">
-                  <IconSettings className="mr-2 h-4 w-4" />
-                  Settings
-                </DropdownMenuItem>
-              )} */}
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem

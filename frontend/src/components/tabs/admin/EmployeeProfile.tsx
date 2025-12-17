@@ -13,6 +13,7 @@ import {
   Clock,
   Edit,
   Trash2,
+  Loader2,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -26,7 +27,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { redirect, useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import {
   AlertDialog,
@@ -38,219 +39,126 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import DeleteConfirmationCard from '../../ui/delete-confirmation';
-// import { Button } from "@/components/ui/button"
+import DeleteConfirmationCard from '../../ui/delete-confirmation'; // Verify this path
 
-// Employee data type
-export type Employee = {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  department: string;
-  position: string;
-  joinDate: string;
-  status: 'Active' | 'On Leave' | 'Inactive';
-  location: string;
-  salary?: string;
-  manager?: string;
-  employeeType?: string;
-  bio?: string;
-  skills?: string[];
-};
-
-// Mock employee data - in real app, this would come from your API
-const mockEmployeeData: Employee[] = [
-  {
-    id: 'emp001',
-    name: 'John Doe',
-    email: 'john.doe@company.com',
-    phone: '+1 (555) 123-4567',
-    department: 'Engineering',
-    position: 'Senior Developer',
-    joinDate: '2022-01-15',
-    status: 'Active',
-    location: 'New York, NY',
-    salary: '$95,000',
-    manager: 'Sarah Johnson',
-    employeeType: 'Full-time',
-    bio: 'Experienced software developer with expertise in React, Node.js, and cloud technologies. Passionate about building scalable web applications and mentoring junior developers.',
-    skills: ['React', 'TypeScript', 'Node.js', 'AWS', 'Python', 'GraphQL'],
-  },
-  {
-    id: 'emp002',
-    name: 'Jane Smith',
-    email: 'jane.smith@company.com',
-    phone: '+1 (555) 234-5678',
-    department: 'Marketing',
-    position: 'Marketing Manager',
-    joinDate: '2021-11-20',
-    status: 'Active',
-    location: 'Los Angeles, CA',
-    salary: '$78,000',
-    manager: 'Michael Brown',
-    employeeType: 'Full-time',
-    bio: 'Creative marketing professional with 8+ years of experience in digital marketing, brand management, and campaign development.',
-    skills: [
-      'Digital Marketing',
-      'SEO',
-      'Content Strategy',
-      'Analytics',
-      'Adobe Creative Suite',
-    ],
-  },
-  {
-    id: 'emp003',
-    name: 'Mike Johnson',
-    email: 'mike.johnson@company.com',
-    phone: '+1 (555) 345-6789',
-    department: 'Sales',
-    position: 'Sales Representative',
-    joinDate: '2023-03-10',
-    status: 'Active',
-    location: 'Chicago, IL',
-    salary: '$65,000',
-    manager: 'Lisa Davis',
-    employeeType: 'Full-time',
-    bio: 'Results-driven sales professional with a track record of exceeding targets and building strong client relationships.',
-    skills: ['Sales', 'CRM', 'Client Relations', 'Negotiation', 'Presentation'],
-  },
-  {
-    id: 'emp004',
-    name: 'Sarah Wilson',
-    email: 'sarah.wilson@company.com',
-    phone: '+1 (555) 456-7890',
-    department: 'HR',
-    position: 'HR Specialist',
-    joinDate: '2022-07-05',
-    status: 'On Leave',
-    location: 'Boston, MA',
-    salary: '$58,000',
-    manager: 'Robert Taylor',
-    employeeType: 'Full-time',
-    bio: 'HR professional specializing in talent acquisition, employee relations, and organizational development.',
-    skills: [
-      'Recruitment',
-      'Employee Relations',
-      'HR Policies',
-      'Training',
-      'Compliance',
-    ],
-  },
-  {
-    id: 'emp005',
-    name: 'David Brown',
-    email: 'david.brown@company.com',
-    phone: '+1 (555) 567-8901',
-    department: 'Engineering',
-    position: 'Frontend Developer',
-    joinDate: '2023-01-12',
-    status: 'Active',
-    location: 'Seattle, WA',
-    salary: '$72,000',
-    manager: 'John Doe',
-    employeeType: 'Full-time',
-    bio: 'Frontend developer with a passion for creating beautiful and intuitive user interfaces using modern web technologies.',
-    skills: ['React', 'Vue.js', 'CSS', 'JavaScript', 'UI/UX Design', 'Figma'],
-  },
-];
+// Import API and Shared Types
+import { employeeAPI } from '@/services/api';
+import type { Employee } from '@/types';
 
 export default function EmployeeProfile() {
   const navigate = useNavigate();
+  const { id } = useParams(); // Get ID from URL (e.g. /employees/123)
+
   const [showDeleteCard, setShowDeleteCard] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
-
-  // In real app, you'd get this from URL params
-  // For React Router: const { id } = useParams()
-  // For Next.js: const { id } = useRouter().query or useParams()
-  const [employeeId, setEmployeeId] = React.useState('emp001'); // Mock ID for demo
-  const [employee, setEmployee] = React.useState<Employee | null>(null);
   const [loading, setLoading] = React.useState(true);
+  const [employee, setEmployee] = React.useState<Employee | null>(null);
 
-  // Mock function to simulate getting ID from URL
-  // Replace this with your actual URL parameter extraction
+  // --- FETCH DATA ---
   React.useEffect(() => {
-    // Simulate getting ID from URL params
-    // In real app: setEmployeeId(id from URL params)
-
-    // Mock API call
     const fetchEmployee = async () => {
-      setLoading(true);
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      // Find employee by ID
-      const foundEmployee = mockEmployeeData.find(
-        (emp) => emp.id === employeeId
-      );
-      setEmployee(foundEmployee || null);
-      setLoading(false);
+      if (!id) return;
+      try {
+        setLoading(true);
+        const response = await employeeAPI.getById(id);
+        if (response.success) {
+          setEmployee(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch employee', error);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchEmployee();
-  }, [employeeId]);
+  }, [id]);
 
-  // Mock navigation functions - replace with your actual routing
+  // --- HANDLERS ---
+
   const handleGoBack = () => {
-    // For React Router: navigate('/admin/employees')
-    // For Next.js: router.push('/admin/employees')
-    // For now:
-    // console.log("Navigate back to employee list")
-    // alert("Navigate back to /admin/employees")
-
     navigate(`/admin/employees/all`);
   };
 
-  const handleEdit = (employee: Employee) => {
-    // Navigate to edit page or open edit modal
-    // console.log("Edit employee:", employee?.id)
-    // alert(`Navigate to /admin/employees/${employee?.id}/edit`);
-    navigate(`/admin/employees/${employee?.id}/edit`);
+  const handleEdit = () => {
+    if (employee) {
+      navigate(`/admin/employees/${employee.id}/edit`);
+    }
   };
 
   const handleConfirmDelete = async () => {
+    if (!employee) return;
+
     setIsDeleting(true);
-
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    console.log('Item deleted successfully!');
-    setIsDeleting(false);
-    setShowDeleteCard(false);
-
-    // Show success message or redirect
-    navigate(`/admin/employees/all`);
+    try {
+      const response = await employeeAPI.delete(employee.id);
+      if (response.success) {
+        navigate(`/admin/employees/all`);
+      }
+    } catch (error) {
+      console.error('Failed to delete', error);
+      // Optional: Show error toast here
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteCard(false);
+    }
   };
 
   const handleCancelDelete = () => {
     setShowDeleteCard(false);
   };
 
-  // Get status badge styling
-  const getStatusBadge = (status: string) => {
-    const statusColors = {
-      Active: 'bg-green-100 text-green-800 hover:bg-green-100',
-      'On Leave': 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100',
-      Inactive: 'bg-red-100 text-red-800 hover:bg-red-100',
-    };
+  // --- HELPERS ---
 
-    return (
-      <Badge
-        className={
-          statusColors[status as keyof typeof statusColors] ||
-          'bg-gray-100 text-gray-800 hover:bg-gray-100'
-        }
-      >
-        {status}
-      </Badge>
-    );
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
   };
+
+  const formatCurrency = (amount?: number) => {
+    if (amount === undefined || amount === null) return 'N/A';
+    return new Intl.NumberFormat('en-LK', {
+      style: 'currency',
+      currency: 'LKR',
+    }).format(amount);
+  };
+
+  const getStatusBadge = (status: string) => {
+    // Normalize status to lowercase for comparison
+    const s = status?.toLowerCase() || 'inactive';
+
+    if (s === 'active') {
+      return (
+        <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+          Active
+        </Badge>
+      );
+    } else if (s === 'on leave') {
+      return (
+        <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
+          On Leave
+        </Badge>
+      );
+    } else {
+      return (
+        <Badge className="bg-red-100 text-red-800 hover:bg-red-100">
+          Inactive
+        </Badge>
+      );
+    }
+  };
+
+  // --- RENDER ---
 
   if (loading) {
     return (
-      <div className="w-full min-h-screen flex items-center justify-center">
+      <div className="w-full h-96 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
+          <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
           <p className="text-muted-foreground">Loading employee profile...</p>
         </div>
       </div>
@@ -259,17 +167,17 @@ export default function EmployeeProfile() {
 
   if (!employee) {
     return (
-      <div className="w-full min-h-screen flex items-center justify-center">
+      <div className="w-full h-96 flex flex-col items-center justify-center gap-4">
         <div className="text-center">
-          <h2 className="text-2xl font-bold mb-2">Employee Not Found</h2>
-          <p className="text-muted-foreground mb-4">
-            The employee you're looking for doesn't exist.
+          <h2 className="text-2xl font-bold">Employee Not Found</h2>
+          <p className="text-muted-foreground">
+            The employee you're looking for doesn't exist or has been removed.
           </p>
-          <Button onClick={handleGoBack} variant="outline">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Employee List
-          </Button>
         </div>
+        <Button onClick={handleGoBack} variant="outline">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to List
+        </Button>
       </div>
     );
   }
@@ -278,14 +186,13 @@ export default function EmployeeProfile() {
     <div className="w-full mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button onClick={handleGoBack} variant="outline" size="sm">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back
-          </Button>
-        </div>
+        <Button onClick={handleGoBack} variant="outline" size="sm">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back
+        </Button>
 
         <div className="flex items-center gap-2">
+          {/* Action Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline">Actions</Button>
@@ -293,68 +200,64 @@ export default function EmployeeProfile() {
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Employee Actions</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => handleEdit(employee)}>
+              <DropdownMenuItem onClick={handleEdit}>
                 <Edit className="mr-2 h-4 w-4" />
-                Edit Employee
+                Edit Profile
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => navigator.clipboard.writeText(employee.id)}
               >
                 <User className="mr-2 h-4 w-4" />
-                Copy Employee ID
+                Copy Database ID
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => setShowDeleteCard(true)}
-                className="text-red-600"
+                className="text-red-600 focus:text-red-600"
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete Employee
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <AlertDialog>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action cannot be undone. This will permanently delete
-                  your account and remove your data from our servers.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction>Continue</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
         </div>
       </div>
-      <div className="flex flex-row gap-4">
-        <div className="w-16 h-16  rounded-xl outline-1 bg-red-400">
-          {/* <img src={employee.image} alt="" className="bg-red-400"/> */}
+
+      {/* Profile Header */}
+      <div className="flex flex-row gap-6 items-center">
+        <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center text-primary text-2xl font-bold">
+          {/* Initials Avatar */}
+          {employee.fullName
+            .split(' ')
+            .map((n) => n[0])
+            .join('')
+            .substring(0, 2)
+            .toUpperCase()}
         </div>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{employee.name}</h1>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {employee.fullName}
+          </h1>
           <p className="text-muted-foreground">
             {employee.position} • {employee.department}
           </p>
         </div>
       </div>
 
+      {/* Delete Modal */}
       {showDeleteCard && (
         <DeleteConfirmationCard
           title="Delete Employee?"
-          description="By continuing this action, the employee will be permanently removed from the system. All associated data will be lost."
+          description="This will permanently delete this employee record and remove their system access. This action cannot be undone."
           onConfirm={handleConfirmDelete}
           onCancel={handleCancelDelete}
           isLoading={isDeleting}
         />
       )}
 
-      {/* Main Content */}
+      {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Personal Information */}
+        {/* Left Column: Personal Info */}
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader>
@@ -363,8 +266,9 @@ export default function EmployeeProfile() {
                 Personal Information
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Contact Info */}
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
                     <Mail className="h-4 w-4 text-muted-foreground" />
@@ -397,6 +301,7 @@ export default function EmployeeProfile() {
                   </div>
                 </div>
 
+                {/* Job Info */}
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
                     <Building className="h-4 w-4 text-muted-foreground" />
@@ -423,44 +328,41 @@ export default function EmployeeProfile() {
                     <div>
                       <p className="text-sm font-medium">Join Date</p>
                       <p className="text-sm text-muted-foreground">
-                        {employee.joinDate}
+                        {formatDate(employee.hireDate)}
                       </p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {employee.bio && (
-                <div className="pt-4 border-t">
-                  <h4 className="text-sm font-medium mb-2">Bio</h4>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {employee.bio}
-                  </p>
-                </div>
-              )}
+              {/* Bio Section */}
+              <div className="pt-4 border-t">
+                <h4 className="text-sm font-medium mb-2">Bio</h4>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {employee.bio}
+                </p>
+              </div>
             </CardContent>
           </Card>
 
-          {/* Skills */}
-          {employee.skills && employee.skills.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Skills & Expertise</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {employee.skills.map((skill, index) => (
-                    <Badge key={index} variant="secondary">
-                      {skill}
-                    </Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {/* Skills Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Skills & Expertise</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                {employee.skills.map((skill, index) => (
+                  <Badge key={index} variant="secondary">
+                    {skill}
+                  </Badge>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Employment Details */}
+        {/* Right Column: Employment Details */}
         <div className="space-y-6">
           <Card>
             <CardHeader>
@@ -468,10 +370,13 @@ export default function EmployeeProfile() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-3">
+                {/* ID (Using ID from API if available, else standard ID) */}
                 <div>
                   <p className="text-sm font-medium">Employee ID</p>
                   <p className="text-sm text-muted-foreground font-mono">
-                    {employee.id}
+                    {/* If your backend sends 'employeeId' (EMP001), use it. Otherwise fall back to UUID */}
+                    {(employee as any).employeeId ||
+                      employee.id.substring(0, 8)}
                   </p>
                 </div>
 
@@ -480,20 +385,20 @@ export default function EmployeeProfile() {
                   <div className="mt-1">{getStatusBadge(employee.status)}</div>
                 </div>
 
-                {employee.employeeType && (
+                {employee.employmentType && (
                   <div>
                     <p className="text-sm font-medium">Employment Type</p>
                     <p className="text-sm text-muted-foreground">
-                      {employee.employeeType}
+                      {employee.employmentType}
                     </p>
                   </div>
                 )}
 
-                {employee.salary && (
+                {employee.salary !== undefined && (
                   <div>
                     <p className="text-sm font-medium">Salary</p>
                     <p className="text-sm text-muted-foreground">
-                      {employee.salary}
+                      {formatCurrency(employee.salary)}
                     </p>
                   </div>
                 )}
@@ -511,7 +416,7 @@ export default function EmployeeProfile() {
                 variant="outline"
                 size="sm"
                 className="w-full justify-start"
-                onClick={() => handleEdit(employee)}
+                onClick={handleEdit}
               >
                 <Edit className="mr-2 h-4 w-4" />
                 Edit Profile
@@ -520,14 +425,9 @@ export default function EmployeeProfile() {
                 variant="outline"
                 size="sm"
                 className="w-full justify-start"
-              >
-                <Clock className="mr-2 h-4 w-4" />
-                View Time Logs
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full justify-start"
+                onClick={() =>
+                  (window.location.href = `mailto:${employee.email}`)
+                }
               >
                 <Mail className="mr-2 h-4 w-4" />
                 Send Email

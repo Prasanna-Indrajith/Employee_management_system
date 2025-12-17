@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Card,
   CardContent,
@@ -21,43 +21,63 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { IconCalendarPlus, IconHistory } from '@tabler/icons-react';
+// Import the API we just created
+import { leaveAPI } from '@/services/api';
 
 export default function MyLeaves() {
+  const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [leaveHistory, setLeaveHistory] = useState<any[]>([]);
 
-  const handleRequest = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false);
-      alert('Leave requested successfully!');
-    }, 1000);
+  // Form State
+  const [formData, setFormData] = useState({
+    leaveType: '',
+    startDate: '',
+    endDate: '',
+    reason: '',
+  });
+
+  // 1. Fetch History on Mount
+  const fetchLeaves = async () => {
+    try {
+      const response = await leaveAPI.getMyLeaves();
+      if (response.success && response.data) {
+        setLeaveHistory(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch leaves', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const leaveHistory = [
-    {
-      id: 1,
-      type: 'Medical',
-      date: 'Nov 12, 2025',
-      days: 1,
-      status: 'Approved',
-    },
-    {
-      id: 2,
-      type: 'Annual',
-      date: 'Oct 05, 2025',
-      days: 2,
-      status: 'Rejected',
-    },
-    {
-      id: 3,
-      type: 'Casual',
-      date: 'Sep 20, 2025',
-      days: 1,
-      status: 'Approved',
-    },
-  ];
+  useEffect(() => {
+    fetchLeaves();
+  }, []);
+
+  // 2. Handle Submit
+  const handleRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      const response = await leaveAPI.requestLeave(formData);
+
+      if (response.success) {
+        alert('Leave requested successfully!');
+        // Clear form
+        setFormData({ leaveType: '', startDate: '', endDate: '', reason: '' });
+        // Refresh list
+        fetchLeaves();
+      } else {
+        alert(response.message || 'Failed to request leave');
+      }
+    } catch (error) {
+      alert('Error submitting request');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -65,7 +85,7 @@ export default function MyLeaves() {
         <h2 className="text-2xl font-bold tracking-tight">My Leaves</h2>
       </div>
       <div className="grid gap-6 md:grid-cols-2">
-        {/* 1. Request Form */}
+        {/* REQUEST FORM */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -80,14 +100,19 @@ export default function MyLeaves() {
             <form onSubmit={handleRequest} className="space-y-4">
               <div className="space-y-2">
                 <Label>Leave Type</Label>
-                <Select>
+                <Select
+                  value={formData.leaveType}
+                  onValueChange={(val) =>
+                    setFormData({ ...formData, leaveType: val })
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="annual">Annual Leave</SelectItem>
-                    <SelectItem value="medical">Medical Leave</SelectItem>
-                    <SelectItem value="casual">Casual Leave</SelectItem>
+                    <SelectItem value="Annual">Annual Leave</SelectItem>
+                    <SelectItem value="Medical">Medical Leave</SelectItem>
+                    <SelectItem value="Casual">Casual Leave</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -95,17 +120,38 @@ export default function MyLeaves() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>From Date</Label>
-                  <Input type="date" />
+                  <Input
+                    type="date"
+                    value={formData.startDate}
+                    onChange={(e) =>
+                      setFormData({ ...formData, startDate: e.target.value })
+                    }
+                    required
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>To Date</Label>
-                  <Input type="date" />
+                  <Input
+                    type="date"
+                    value={formData.endDate}
+                    onChange={(e) =>
+                      setFormData({ ...formData, endDate: e.target.value })
+                    }
+                    required
+                  />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <Label>Reason</Label>
-                <Textarea placeholder="Briefly describe why you need time off..." />
+                <Textarea
+                  placeholder="Briefly describe why you need time off..."
+                  value={formData.reason}
+                  onChange={(e) =>
+                    setFormData({ ...formData, reason: e.target.value })
+                  }
+                  required
+                />
               </div>
 
               <Button type="submit" className="w-full" disabled={isSubmitting}>
@@ -115,7 +161,7 @@ export default function MyLeaves() {
           </CardContent>
         </Card>
 
-        {/* 2. Leave History */}
+        {/* HISTORY LIST */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -128,32 +174,53 @@ export default function MyLeaves() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {leaveHistory.map((leave) => (
-                <div
-                  key={leave.id}
-                  className="flex items-center justify-between p-4 border rounded-lg bg-card hover:bg-accent/50 transition-colors"
-                >
-                  <div className="space-y-1">
-                    <p className="font-medium leading-none">
-                      {leave.type} Leave
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {leave.date} • {leave.days} Day(s)
-                    </p>
-                  </div>
-                  <Badge
-                    variant={
-                      leave.status === 'Approved'
-                        ? 'default'
-                        : leave.status === 'Rejected'
-                        ? 'destructive'
-                        : 'secondary'
-                    }
+              {loading ? (
+                <p className="text-sm text-muted-foreground">
+                  Loading history...
+                </p>
+              ) : leaveHistory.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No leave history found.
+                </p>
+              ) : (
+                leaveHistory.map((leave) => (
+                  <div
+                    key={leave.id}
+                    className="flex items-center justify-between p-4 border rounded-lg bg-card hover:bg-accent/50 transition-colors"
                   >
-                    {leave.status}
-                  </Badge>
-                </div>
-              ))}
+                    <div className="space-y-1">
+                      <p className="font-medium leading-none">
+                        {leave.leaveType || leave.type} Leave
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {/* If dates is an array, show the first one, or a summary */}
+                        {new Date(
+                          leave.dates?.[0] || leave.requestedOn
+                        ).toLocaleDateString()}{' '}
+                        • {leave.duration}
+                      </p>
+                    </div>
+                    <Badge
+                      variant={
+                        leave.status === 'Approved'
+                          ? 'default'
+                          : leave.status === 'Rejected'
+                          ? 'destructive'
+                          : 'secondary'
+                      }
+                      className={
+                        leave.status === 'Approved'
+                          ? 'bg-green-100 text-green-700 hover:bg-green-100'
+                          : leave.status === 'Rejected'
+                          ? 'bg-red-100 text-red-700 hover:bg-red-100'
+                          : ''
+                      }
+                    >
+                      {leave.status}
+                    </Badge>
+                  </div>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>

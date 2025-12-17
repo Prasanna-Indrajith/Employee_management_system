@@ -1,25 +1,25 @@
 import * as React from 'react';
 import {
   // Common
-  IconDashboard, // Dashboard
-  IconInnerShadowTop, // Logo icon
+  IconDashboard,
+  IconInnerShadowTop,
 
   // Employees
-  IconUsers, // All Employees
-  IconUserPlus, // Add Employee
+  IconUsers,
+  IconUserPlus,
 
   // Attendance (Admin)
-  IconCalendarTime, // Timesheets (Better than Book)
-  IconCalendarOff, // Time Off Requests (Specific for leaves)
+  IconCalendarTime,
+  IconCalendarOff,
 
   // Salary (Admin)
-  IconCash, // Payroll (Money flow)
-  IconReportMoney, // Salary Report (Analytics + Money)
+  IconCash,
+  IconReportMoney,
 
   // User Side
-  IconClockCheck, // My Attendance (Clocking in)
-  IconCalendarUser, // My Leaves (Personal Calendar)
-  IconFileDollar, // My Payslips (Document + Money)
+  IconClockCheck,
+  IconCalendarUser,
+  IconFileDollar,
 } from '@tabler/icons-react';
 
 import { NavDocuments } from '@/components/nav-documents';
@@ -34,20 +34,9 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
 
-// --- FIXED DATA STRUCTURE ---
-const userData = {
-  admin: {
-    name: 'Admin User',
-    email: 'admin@orian.com',
-    avatar: '/avatars/admin.jpg',
-  },
-  employee: {
-    name: 'Kasun Perera',
-    email: 'kasun@orian.com',
-    avatar: '/avatars/shadcn.jpg',
-  },
-};
-
+// --- NAVIGATION DATA ---
+// (We keep this because the Sidebar structure is static,
+// but the User Profile data inside NavUser is dynamic)
 const navData = {
   // --- ADMIN NAVIGATION ---
   admin: {
@@ -74,24 +63,24 @@ const navData = {
       {
         name: 'Timesheets',
         url: '/admin/attendance/timesheets',
-        icon: IconCalendarTime, // Changed
+        icon: IconCalendarTime,
       },
       {
         name: 'Time Off Requests',
         url: '/admin/attendance/time-off-requests',
-        icon: IconCalendarOff, // Changed
+        icon: IconCalendarOff,
       },
     ],
     salary: [
       {
         name: 'Payroll',
         url: '/admin/salary/payroll',
-        icon: IconCash, // Changed
+        icon: IconCash,
       },
       {
         name: 'Salary Report',
         url: '/admin/salary/report',
-        icon: IconReportMoney, // Changed
+        icon: IconReportMoney,
       },
     ],
   },
@@ -109,19 +98,19 @@ const navData = {
       {
         name: 'My Attendance',
         url: '/user/attendance',
-        icon: IconClockCheck, // Changed
+        icon: IconClockCheck,
       },
       {
         name: 'My Leaves',
         url: '/user/leaves',
-        icon: IconCalendarUser, // Changed
+        icon: IconCalendarUser,
       },
     ],
     finance: [
       {
         name: 'My Payslips',
         url: '/user/salary',
-        icon: IconFileDollar, // Changed
+        icon: IconFileDollar,
       },
     ],
   },
@@ -132,11 +121,8 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 }
 
 export function AppSidebar({ role = 'admin', ...props }: AppSidebarProps) {
-  // Select navigation data
+  // Select navigation links based on the role passed from Layout
   const activeNavData = role === 'user' ? navData.user : navData.admin;
-
-  // Select user profile data
-  const activeUserData = role === 'user' ? userData.employee : userData.admin;
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -152,8 +138,10 @@ export function AppSidebar({ role = 'admin', ...props }: AppSidebarProps) {
       </SidebarHeader>
 
       <SidebarContent>
+        {/* Main Dashboard Link */}
         <NavMain items={activeNavData.main} />
 
+        {/* Dynamic Sections based on Role */}
         {role === 'admin' ? (
           /* --- ADMIN VIEW --- */
           <>
@@ -177,8 +165,8 @@ export function AppSidebar({ role = 'admin', ...props }: AppSidebarProps) {
       </SidebarContent>
 
       <SidebarFooter>
-        {/* Pass the dynamic user data and the role to NavUser */}
-        <NavUser user={activeUserData} role={role} />
+        {/* Clean implementation: No props needed! */}
+        <NavUser />
       </SidebarFooter>
     </Sidebar>
   );

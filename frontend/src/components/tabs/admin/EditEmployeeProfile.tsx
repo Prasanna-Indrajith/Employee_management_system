@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Save, X, AlertCircle } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { ArrowLeft, Save, X, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -21,151 +21,160 @@ import {
 import { useNavigate, useParams } from 'react-router-dom';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-// --- REUSING CONSTANTS (Ideally move these to a shared constants file) ---
-const sriLankanLocations = [
-  'Colombo',
-  'Kandy',
-  'Galle',
-  'Jaffna',
-  'Negombo',
-  'Trincomalee',
-  'Batticaloa',
-  'Matara',
-  'Anuradhapura',
-  'Kurunegala',
-  'Ratnapura',
-  'Badulla',
-  'Gampaha',
-  'Kalutara',
-  'Nuwara Eliya',
-];
-const departments = [
-  'Engineering',
-  'Marketing',
-  'Sales',
-  'HR',
-  'Finance',
-  'Design',
-];
-const positions = [
-  'Senior Developer',
-  'Junior Developer',
-  'Team Lead',
-  'Manager',
-  'Senior Manager',
-  'Specialist',
-  'Senior Specialist',
-  'Associate',
-  'Executive',
-  'Senior Executive',
-  'Analyst',
-  'Designer',
-  'UI/UX Designer',
-  'Product Manager',
-  'Project Manager',
-  'HR Manager',
-  'Sales Representative',
-  'Marketing Executive',
-  'Finance Officer',
-  'Accountant',
-];
-const employmentTypes = ['Full-time', 'Part-time', 'Contract'];
+// API & Types
+import { employeeAPI } from '@/services/api';
+import type { LookupData, Employee } from '@/types';
 
 export default function EditEmployee() {
   const navigate = useNavigate();
-  const { id } = useParams(); // Get the ID from the URL (e.g., /edit/emp005)
+  const { id } = useParams();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoading, setIsLoading] = useState(true); // Loading state for fetching data
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Form state
+  // --- 1. DYNAMIC DATA STATE ---
+  const [lookups, setLookups] = useState<LookupData>({
+    departments: [],
+    positions: [],
+    locations: [],
+  });
+
+  // --- 2. FORM STATE ---
   const [formData, setFormData] = useState({
-    employeeId: '',
-    fullName: '',
-    email: '', // Storing full email for edit mode
+    firstName: '',
+    lastName: '',
+    emailUser: '', // We only store the "kasun.perera" part here
     phone: '',
-    location: '',
-    department: '',
-    position: '',
+    locationId: '',
+    departmentId: '',
+    positionId: '',
     joinDate: '',
     employmentType: '',
     salary: '',
+    status: '',
   });
 
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Simulate fetching data based on ID
+  // --- 3. FETCH DATA ON LOAD ---
   useEffect(() => {
-    // In a real app, you would fetch from API: axios.get(`/api/employees/${id}`)
-    const fetchEmployeeData = async () => {
+    const loadData = async () => {
+      if (!id) return;
       setIsLoading(true);
-      // Simulate network delay
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      try {
+        // Run both requests in parallel for speed
+        const [lookupRes, empRes] = await Promise.all([
+          employeeAPI.getLookups(),
+          employeeAPI.getById(id),
+        ]);
 
-      // MOCK DATA - Simulating what the database returns
-      const mockData = {
-        employeeId: id || 'emp005',
-        fullName: 'Kasun Perera',
-        email: 'kasun.perera@orian.com',
-        phone: '0771234567',
-        location: 'Colombo',
-        department: 'Engineering',
-        position: 'Senior Developer',
-        joinDate: '2023-01-15',
-        employmentType: 'Full-time',
-        salary: '120000', // Raw number string
-      };
+        if (lookupRes.success) setLookups(lookupRes.data);
 
-      setFormData(mockData);
-      setIsLoading(false);
+        if (empRes.success && empRes.data) {
+          const emp = empRes.data;
+
+          // Split Name
+          const nameParts = emp.fullName.split(' ');
+          const firstName = nameParts[0] || '';
+          const lastName = nameParts.slice(1).join(' ') || '';
+
+          // Split Email (Extract username part)
+          const emailUser = emp.email.split('@')[0] || '';
+
+          // Find IDs based on names (Since GET returns strings like "Engineering")
+          // In a real app, GET /:id should ideally return IDs.
+          // If your API returns names, we map them back to IDs here:
+          const dept = lookupRes.data.departments.find(
+            (d) => d.name === emp.department
+          );
+          const pos = lookupRes.data.positions.find(
+            (p) => p.title === emp.position
+          );
+          const loc = lookupRes.data.locations.find(
+            (l) => l.name === emp.location
+          );
+
+          setFormData({
+            firstName,
+            lastName,
+            emailUser,
+            phone: emp.phone,
+            locationId: loc ? loc.id.toString() : '',
+            departmentId: dept ? dept.id.toString() : '',
+            positionId: pos ? pos.id.toString() : '',
+            joinDate: emp.hireDate ? emp.hireDate.split('T')[0] : '',
+            employmentType: emp.employmentType || 'Full-time',
+            salary: emp.salary?.toString() || '',
+            status: emp.status || 'active',
+          });
+        }
+      } catch (error) {
+        console.error('Failed to load data', error);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    fetchEmployeeData();
+    loadData();
   }, [id]);
 
-  const handleChange = (name, value) => {
+  // --- 4. FILTER POSITIONS LOGIC ---
+  const filteredPositions = useMemo(() => {
+    if (!formData.departmentId) return [];
+    return lookups.positions.filter(
+      (pos) => pos.department_id === Number(formData.departmentId)
+    );
+  }, [formData.departmentId, lookups.positions]);
+
+  // --- HANDLERS ---
+  const handleChange = (name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
+
+    // Reset position if department changes
+    if (name === 'departmentId') {
+      setFormData((prev) => ({ ...prev, departmentId: value, positionId: '' }));
+    }
+
     if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: '' }));
+      setErrors((prev) => {
+        const newErr = { ...prev };
+        delete newErr[name];
+        return newErr;
+      });
     }
   };
 
   const validateForm = () => {
-    const newErrors = {};
+    const newErrors: Record<string, string> = {};
 
-    if (!formData.fullName || formData.fullName.length < 2)
-      newErrors.fullName = 'Name must be at least 2 characters';
+    if (!formData.firstName) newErrors.firstName = 'First name is required';
+    if (!formData.emailUser) newErrors.emailUser = 'Email username is required';
 
     if (!formData.phone) {
       newErrors.phone = 'Phone number is required';
     } else if (!/^(?:\+94|0)?[1-9]\d{8}$/.test(formData.phone)) {
-      newErrors.phone = 'Invalid Sri Lankan phone number format';
+      newErrors.phone = 'Invalid Sri Lankan phone number';
     }
 
-    if (!formData.location) newErrors.location = 'Please select a location';
-    if (!formData.department)
-      newErrors.department = 'Please select a department';
-    if (!formData.position) newErrors.position = 'Please select a position';
-    if (!formData.employmentType)
-      newErrors.employmentType = 'Please select employment type';
+    if (!formData.locationId) newErrors.locationId = 'Required';
+    if (!formData.departmentId) newErrors.departmentId = 'Required';
+    if (!formData.positionId) newErrors.positionId = 'Required';
 
-    if (!formData.salary) {
-      newErrors.salary = 'Salary is required';
-    } else if (!/^\d+$/.test(formData.salary)) {
-      newErrors.salary = 'Salary must be a valid number';
+    if (!formData.salary || isNaN(Number(formData.salary))) {
+      newErrors.salary = 'Invalid salary';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm()) return;
+    if (!validateForm() || !id) return;
 
     setIsSubmitting(true);
 
-    // Format phone if changed
+    // Format Phone
     let formattedPhone = formData.phone;
     if (!formattedPhone.startsWith('+94')) {
       formattedPhone = formattedPhone.startsWith('0')
@@ -173,26 +182,42 @@ export default function EditEmployee() {
         : `+94${formattedPhone}`;
     }
 
-    // Prepare update payload
-    const updateData = {
-      ...formData,
+    // Reconstruct Full Email
+    const fullEmail = `${formData.emailUser}@orian.com`.toLowerCase();
+
+    // Prepare Payload
+    const payload: any = {
+      // Use Partial<CreateEmployeeData> in real types
+      fullName: `${formData.firstName} ${formData.lastName}`,
+      email: fullEmail,
       phone: formattedPhone,
-      salary: `Rs. ${parseInt(formData.salary).toLocaleString('en-US')}`,
+      departmentId: Number(formData.departmentId),
+      positionId: Number(formData.positionId),
+      locationId: Number(formData.locationId),
+      employmentType: formData.employmentType,
+      salary: Number(formData.salary),
+      status: formData.status,
     };
 
-    // Simulate API Update
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    console.log('Updated Employee Data:', updateData);
+    try {
+      // You need to ensure employeeAPI.update is implemented in api.ts!
+      const response = await employeeAPI.update(id, payload);
 
-    alert(`Profile for ${formData.fullName} updated successfully!`);
-    setIsSubmitting(false);
-    navigate('/admin/employees/all');
+      if (response.success) {
+        navigate('/admin/employees/all');
+      }
+    } catch (error) {
+      console.error('Update failed', error);
+      alert('Failed to update profile.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (isLoading) {
     return (
-      <div className="p-8 text-center text-muted-foreground">
-        Loading employee profile...
+      <div className="flex h-96 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -204,9 +229,9 @@ export default function EditEmployee() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Edit Employee</h1>
           <p className="text-muted-foreground">
-            Managing details for{' '}
+            Updating details for{' '}
             <span className="font-semibold text-foreground">
-              {formData.employeeId}
+              {formData.firstName} {formData.lastName}
             </span>
           </p>
         </div>
@@ -218,16 +243,6 @@ export default function EditEmployee() {
         </Button>
       </div>
 
-      {/* Admin Notice Alert */}
-      <Alert variant="default" className="bg-blue-50 border-blue-200">
-        <AlertCircle className="h-4 w-4 text-blue-600" />
-        <AlertTitle className="text-blue-800">Admin Access</AlertTitle>
-        <AlertDescription className="text-blue-700">
-          Some sensitive fields (Email, Join Date) are locked and cannot be
-          modified directly. Contact super-admin for sensitive data changes.
-        </AlertDescription>
-      </Alert>
-
       <div className="space-y-6">
         {/* Personal Information */}
         <Card>
@@ -237,39 +252,45 @@ export default function EditEmployee() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Employee ID (Read Only) */}
+              {/* Name */}
               <div className="space-y-2">
-                <label className="text-sm font-medium">Employee ID</label>
+                <label className="text-sm font-medium">First Name</label>
                 <Input
-                  value={formData.employeeId}
-                  disabled
-                  className="bg-muted font-mono"
+                  value={formData.firstName}
+                  onChange={(e) => handleChange('firstName', e.target.value)}
                 />
-              </div>
-
-              {/* Full Name */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Full Name</label>
-                <Input
-                  value={formData.fullName}
-                  onChange={(e) => handleChange('fullName', e.target.value)}
-                />
-                {errors.fullName && (
-                  <p className="text-sm text-red-600">{errors.fullName}</p>
+                {errors.firstName && (
+                  <p className="text-sm text-red-600">{errors.firstName}</p>
                 )}
               </div>
 
-              {/* Email (Read Only - Locked for Admin) */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Last Name</label>
+                <Input
+                  value={formData.lastName}
+                  onChange={(e) => handleChange('lastName', e.target.value)}
+                />
+              </div>
+
+              {/* Email Editor */}
               <div className="space-y-2">
                 <label className="text-sm font-medium">Email Address</label>
-                <Input
-                  value={formData.email}
-                  disabled
-                  className="bg-muted cursor-not-allowed"
-                />
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={formData.emailUser}
+                    onChange={(e) => handleChange('emailUser', e.target.value)}
+                    className="text-right"
+                  />
+                  <span className="text-sm font-medium text-muted-foreground bg-muted px-3 py-2 rounded-md border">
+                    @orian.com
+                  </span>
+                </div>
                 <p className="text-xs text-muted-foreground">
-                  Email cannot be changed while active.
+                  Updating this will change their login username.
                 </p>
+                {errors.emailUser && (
+                  <p className="text-sm text-red-600">{errors.emailUser}</p>
+                )}
               </div>
 
               {/* Phone */}
@@ -284,26 +305,26 @@ export default function EditEmployee() {
                 )}
               </div>
 
-              {/* Location */}
+              {/* Location (Dynamic) */}
               <div className="space-y-2">
                 <label className="text-sm font-medium">Location</label>
                 <Select
-                  value={formData.location}
-                  onValueChange={(value) => handleChange('location', value)}
+                  value={formData.locationId}
+                  onValueChange={(val) => handleChange('locationId', val)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a location" />
+                    <SelectValue placeholder="Select Location" />
                   </SelectTrigger>
                   <SelectContent>
-                    {sriLankanLocations.map((location) => (
-                      <SelectItem key={location} value={location}>
-                        {location}
+                    {lookups.locations.map((loc) => (
+                      <SelectItem key={loc.id} value={loc.id.toString()}>
+                        {loc.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                {errors.location && (
-                  <p className="text-sm text-red-600">{errors.location}</p>
+                {errors.locationId && (
+                  <p className="text-sm text-red-600">{errors.locationId}</p>
                 )}
               </div>
             </div>
@@ -318,51 +339,106 @@ export default function EditEmployee() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Department */}
+              {/* Department (Dynamic) */}
               <div className="space-y-2">
                 <label className="text-sm font-medium">Department</label>
                 <Select
-                  value={formData.department}
-                  onValueChange={(value) => handleChange('department', value)}
+                  value={formData.departmentId}
+                  onValueChange={(val) => handleChange('departmentId', val)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select department" />
+                    <SelectValue placeholder="Select Department" />
                   </SelectTrigger>
                   <SelectContent>
-                    {departments.map((dept) => (
-                      <SelectItem key={dept} value={dept}>
-                        {dept}
+                    {lookups.departments.map((dept) => (
+                      <SelectItem key={dept.id} value={dept.id.toString()}>
+                        {dept.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                {errors.departmentId && (
+                  <p className="text-sm text-red-600">{errors.departmentId}</p>
+                )}
               </div>
 
-              {/* Position */}
+              {/* Position (Dynamic & Filtered) */}
               <div className="space-y-2">
                 <label className="text-sm font-medium">Position</label>
                 <Select
-                  value={formData.position}
-                  onValueChange={(value) => handleChange('position', value)}
+                  value={formData.positionId}
+                  onValueChange={(val) => handleChange('positionId', val)}
+                  disabled={!formData.departmentId}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select position" />
+                    <SelectValue placeholder="Select Position" />
                   </SelectTrigger>
                   <SelectContent>
-                    {positions.map((pos) => (
-                      <SelectItem key={pos} value={pos}>
-                        {pos}
+                    {filteredPositions.map((pos) => (
+                      <SelectItem key={pos.id} value={pos.id.toString()}>
+                        {pos.title}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                {errors.positionId && (
+                  <p className="text-sm text-red-600">{errors.positionId}</p>
+                )}
               </div>
 
-              {/* Join Date (Read Only - Locked) */}
+              {/* Employment Type */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Employment Type</label>
+                <Select
+                  value={formData.employmentType}
+                  onValueChange={(val) => handleChange('employmentType', val)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Full-time">Full-time</SelectItem>
+                    <SelectItem value="Part-time">Part-time</SelectItem>
+                    <SelectItem value="Contract">Contract</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Status */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Status</label>
+                <Select
+                  value={formData.status}
+                  onValueChange={(val) => handleChange('status', val)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="on leave">On Leave</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Salary */}
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-sm font-medium">Salary (Monthly)</label>
+                <Input
+                  type="number"
+                  value={formData.salary}
+                  onChange={(e) => handleChange('salary', e.target.value)}
+                />
+                {errors.salary && (
+                  <p className="text-sm text-red-600">{errors.salary}</p>
+                )}
+              </div>
+
+              {/* Join Date (ReadOnly) */}
               <div className="space-y-2">
                 <label className="text-sm font-medium">Join Date</label>
                 <Input
-                  type="date"
                   value={formData.joinDate}
                   disabled
                   className="bg-muted"
@@ -371,80 +447,27 @@ export default function EditEmployee() {
                   Historical records cannot be modified.
                 </p>
               </div>
-
-              {/* Employment Type */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Employment Type</label>
-                <Select
-                  value={formData.employmentType}
-                  onValueChange={(value) =>
-                    handleChange('employmentType', value)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {employmentTypes.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Salary */}
-              <div className="space-y-2 md:col-span-2">
-                <label className="text-sm font-medium">Salary (Monthly)</label>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">Rs.</span>
-                  <Input
-                    type="text"
-                    value={formData.salary}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/\D/g, '');
-                      handleChange('salary', value);
-                    }}
-                  />
-                </div>
-                {formData.salary &&
-                  parseInt(formData.salary) > 0 &&
-                  !errors.salary && (
-                    <p className="text-sm text-muted-foreground">
-                      Current: Rs.{' '}
-                      {parseInt(formData.salary).toLocaleString('en-US')}
-                    </p>
-                  )}
-                {errors.salary && (
-                  <p className="text-sm text-red-600">{errors.salary}</p>
-                )}
-              </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Action Buttons */}
+        {/* Buttons */}
         <div className="flex justify-end gap-4">
           <Button
             type="button"
             variant="outline"
             onClick={() => navigate('/admin/employees/all')}
-            disabled={isSubmitting}
           >
-            <X className="mr-2 h-4 w-4" />
-            Cancel
+            <X className="mr-2 h-4 w-4" /> Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={isSubmitting}>
             {isSubmitting ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
-                Updating Profile...
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Updating...
               </>
             ) : (
               <>
-                <Save className="mr-2 h-4 w-4" />
-                Save Changes
+                <Save className="mr-2 h-4 w-4" /> Save Changes
               </>
             )}
           </Button>

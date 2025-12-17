@@ -1,241 +1,237 @@
-import type { Employee, ApiResponse, CreateEmployeeData } from '../types';
+import type { Employee, ApiResponse, CreateEmployeeData } from '@/types';
 
-// Mock employee data for development
+// Mock employee data that matches the Employee interface
 const mockEmployees: Employee[] = [
   {
     id: 'EMP001',
-    firstName: 'John',
-    lastName: 'Smith',
-    email: 'john.smith@company.com',
-    phone: '+1-555-0101',
+    fullName: 'John Smith', // COMBINED
+    email: 'john.smith@orian.com',
+    phone: '+94771234567', // SL Phone format
+    location: 'Colombo', // SL Location
+    role: 'user', // Assigned role
     department: 'Engineering',
-    position: 'Senior Software Engineer',
-    salary: 95000,
+    position: 'Senior Developer', // Position matching your list
     hireDate: '2022-03-15',
+    employmentType: 'Full-time', // Assigned type
+    salary: 95000,
     status: 'active',
     managerId: 'EMP003',
-    address: {
-      street: '123 Main St',
-      city: 'San Francisco',
-      state: 'CA',
-      zipCode: '94105'
-    }
+    bio: 'Experienced in backend systems and cloud architecture.', // Mock bio
+    skills: ['React', 'Node.js', 'TypeScript', 'AWS'], // Mock skills
   },
   {
     id: 'EMP002',
-    firstName: 'Jane',
-    lastName: 'Doe',
-    email: 'jane.doe@company.com',
-    phone: '+1-555-0102',
+    fullName: 'Jane Doe', // COMBINED
+    email: 'jane.doe@orian.com',
+    phone: '+94719876543', // SL Phone format
+    location: 'Kandy', // SL Location
+    role: 'user', // Assigned role
     department: 'Marketing',
-    position: 'Marketing Manager',
-    salary: 75000,
+    position: 'Marketing Executive', // Position matching your list
     hireDate: '2023-01-10',
+    employmentType: 'Full-time', // Assigned type
+    salary: 75000,
     status: 'active',
     managerId: 'EMP004',
-    address: {
-      street: '456 Oak Ave',
-      city: 'San Francisco',
-      state: 'CA',
-      zipCode: '94107'
-    }
+    bio: 'Manages all social media campaigns and content strategy.',
+    skills: ['SEO', 'Content Creation', 'Adobe Suite'],
   },
   {
     id: 'EMP003',
-    firstName: 'Mike',
-    lastName: 'Johnson',
-    email: 'mike.johnson@company.com',
-    phone: '+1-555-0103',
+    fullName: 'Mike Johnson', // COMBINED
+    email: 'mike.johnson@orian.com',
+    phone: '+94765432100', // SL Phone format
+    location: 'Galle', // SL Location
+    role: 'admin', // Assigned role
     department: 'Engineering',
-    position: 'Engineering Manager',
-    salary: 120000,
+    position: 'Team Lead', // Position matching your list
     hireDate: '2021-08-20',
+    employmentType: 'Full-time', // Assigned type
+    salary: 120000,
     status: 'active',
-    address: {
-      street: '789 Pine St',
-      city: 'San Francisco',
-      state: 'CA',
-      zipCode: '94108'
-    }
+    managerId: undefined, // Optional/omitted
+    bio: 'Oversees the Engineering department and project management.',
+    skills: ['Management', 'Agile', 'Leadership'],
   },
   {
     id: 'EMP004',
-    firstName: 'Sarah',
-    lastName: 'Wilson',
-    email: 'sarah.wilson@company.com',
-    phone: '+1-555-0104',
-    department: 'Marketing',
-    position: 'Marketing Director',
-    salary: 110000,
+    fullName: 'Sarah Wilson', // COMBINED
+    email: 'sarah.wilson@orian.com',
+    phone: '+94723334444', // SL Phone format
+    location: 'Colombo', // SL Location
+    role: 'admin', // Assigned role
+    department: 'HR',
+    position: 'HR Manager', // Position matching your list
     hireDate: '2020-11-05',
-    status: 'active',
-    address: {
-      street: '321 Elm St',
-      city: 'San Francisco',
-      state: 'CA',
-      zipCode: '94109'
-    }
+    employmentType: 'Full-time', // Assigned type
+    salary: 110000,
+    status: 'inactive', // Example inactive status
+    managerId: undefined, // Optional/omitted
+    bio: 'Director of Marketing, specializing in brand strategy.',
+    skills: ['Strategy', 'Budgeting', 'Public Relations'],
   },
   {
     id: 'EMP005',
-    firstName: 'David',
-    lastName: 'Brown',
-    email: 'david.brown@company.com',
-    phone: '+1-555-0105',
+    fullName: 'David Brown', // COMBINED
+    email: 'david.brown@orian.com',
+    phone: '+94705550105', // SL Phone format
+    location: 'Jaffna', // SL Location
+    role: 'user', // Assigned role
     department: 'Sales',
-    position: 'Sales Representative',
-    salary: 65000,
+    position: 'Sales Representative', // Position matching your list
     hireDate: '2023-11-15',
+    employmentType: 'Part-time', // Example Part-time
+    salary: 65000,
     status: 'active',
     managerId: 'EMP006',
-    address: {
-      street: '654 Maple Ave',
-      city: 'San Francisco',
-      state: 'CA',
-      zipCode: '94110'
-    }
+    bio: 'Responsible for client acquisition and relationship management.',
+    skills: ['Negotiation', 'CRM', 'Client Relations'],
   },
   {
     id: 'EMP006',
-    firstName: 'Lisa',
-    lastName: 'Garcia',
-    email: 'lisa.garcia@company.com',
-    phone: '+1-555-0106',
+    fullName: 'Lisa Garcia', // COMBINED
+    email: 'lisa.garcia@orian.com',
+    phone: '+94776667777', // SL Phone format
+    location: 'Negombo', // SL Location
+    role: 'user', // Assigned role
     department: 'Sales',
-    position: 'Sales Manager',
-    salary: 85000,
+    position: 'Sales Manager', // Position matching your list
     hireDate: '2022-07-12',
+    employmentType: 'Contract', // Example Contract
+    salary: 85000,
     status: 'active',
-    address: {
-      street: '987 Cedar St',
-      city: 'San Francisco',
-      state: 'CA',
-      zipCode: '94111'
-    }
-  }
+    managerId: undefined, // Optional/omitted
+    bio: 'Leads the Sales team and drives revenue targets.',
+    skills: ['Sales Leadership', 'Forecasting', 'Coaching'],
+  },
 ];
 
 export const mockEmployeeAPI = {
   getAll: async (): Promise<ApiResponse<Employee[]>> => {
     // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
+    await new Promise((resolve) => setTimeout(resolve, 800));
+
     return {
       success: true,
-      data: mockEmployees
+      data: mockEmployees,
     };
   },
 
   getById: async (id: string): Promise<ApiResponse<Employee>> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const employee = mockEmployees.find(emp => emp.id === id);
-    
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    const employee = mockEmployees.find((emp) => emp.id === id);
+
     if (!employee) {
       return {
         success: false,
         data: null as any,
-        message: 'Employee not found'
+        message: 'Employee not found',
       };
     }
-    
+
     return {
       success: true,
-      data: employee
+      data: employee,
     };
   },
 
-  create: async (employeeData: CreateEmployeeData): Promise<ApiResponse<Employee>> => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
+  create: async (
+    employeeData: CreateEmployeeData
+  ): Promise<ApiResponse<Employee>> => {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
     const newEmployee: Employee = {
       id: `EMP${String(mockEmployees.length + 1).padStart(3, '0')}`,
       ...employeeData,
-      status: 'active'
+      status: 'active',
     };
-    
+
     mockEmployees.push(newEmployee);
-    
+
     return {
       success: true,
-      data: newEmployee
+      data: newEmployee,
     };
   },
 
-  update: async (id: string, employeeData: Partial<CreateEmployeeData>): Promise<ApiResponse<Employee>> => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const employeeIndex = mockEmployees.findIndex(emp => emp.id === id);
-    
+  update: async (
+    id: string,
+    employeeData: Partial<CreateEmployeeData>
+  ): Promise<ApiResponse<Employee>> => {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    const employeeIndex = mockEmployees.findIndex((emp) => emp.id === id);
+
     if (employeeIndex === -1) {
       return {
         success: false,
         data: null as any,
-        message: 'Employee not found'
+        message: 'Employee not found',
       };
     }
-    
+
     const updatedEmployee = {
       ...mockEmployees[employeeIndex],
-      ...employeeData
+      ...employeeData,
     };
-    
+
     mockEmployees[employeeIndex] = updatedEmployee;
-    
+
     return {
       success: true,
-      data: updatedEmployee
+      data: updatedEmployee,
     };
   },
 
   delete: async (id: string): Promise<ApiResponse<null>> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const employeeIndex = mockEmployees.findIndex(emp => emp.id === id);
-    
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    const employeeIndex = mockEmployees.findIndex((emp) => emp.id === id);
+
     if (employeeIndex === -1) {
       return {
         success: false,
         data: null,
-        message: 'Employee not found'
+        message: 'Employee not found',
       };
     }
-    
+
     mockEmployees.splice(employeeIndex, 1);
-    
+
     return {
       success: true,
-      data: null
+      data: null,
     };
   },
 
   getMyProfile: async (): Promise<ApiResponse<Employee>> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
     // Get current user from localStorage
     const userData = localStorage.getItem('user');
     if (!userData) {
       return {
         success: false,
         data: null as any,
-        message: 'User not authenticated'
+        message: 'User not authenticated',
       };
     }
-    
+
     const user = JSON.parse(userData);
-    const employee = mockEmployees.find(emp => emp.id === user.employeeId);
-    
+    const employee = mockEmployees.find((emp) => emp.id === user.employeeId);
+
     if (!employee) {
       return {
         success: false,
         data: null as any,
-        message: 'Employee profile not found'
+        message: 'Employee profile not found',
       };
     }
-    
+
     return {
       success: true,
-      data: employee
+      data: employee,
     };
-  }
+  },
 };

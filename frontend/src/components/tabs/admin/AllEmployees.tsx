@@ -1,15 +1,13 @@
 'use client';
 
-import * as React from 'react';
-import { employeeAPI } from '@/services/api'; // Ensure this path matches your file structure
-import type { Employee } from '@/types'; // Import from your central types file
-import { useEffect, useState } from 'react';
-
+import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowUpDown, ChevronDown, Search } from 'lucide-react';
 
+import { employeeAPI } from '@/services/api';
+import type { Employee } from '@/types';
+
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -19,41 +17,48 @@ import {
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 
+// Helper: Format Dates nicely
+const formatDate = (dateString: string | Date) => {
+  if (!dateString) return 'N/A';
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+};
+
 export default function EmployeeDataTable() {
   const navigate = useNavigate();
 
-  // State for data
+  // --- STATE ---
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // State for filters/sorting
+  // Filters
   const [nameFilter, setNameFilter] = useState('');
   const [emailFilter, setEmailFilter] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('');
-  const [selectedEmployees, setSelectedEmployees] = useState<Set<string>>(
-    new Set()
-  );
 
-  // Sorting state
-  const [sortField, setSortField] = useState<string | null>(null);
+  // Sorting
+  const [sortField, setSortField] = useState<keyof Employee | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
-  // Pagination state
+  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5);
 
-  // Column visibility
+  // Column Visibility
   const [visibleColumns, setVisibleColumns] = useState({
     name: true,
     email: true,
     department: true,
     position: true,
     status: true,
-    joinDate: true,
+    hireDate: true, // Changed from 'joinDate' to match DB field
     actions: true,
   });
 
-  // FETCH DATA ON MOUNT
+  // --- API FETCH ---
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -70,20 +75,23 @@ export default function EmployeeDataTable() {
     fetchData();
   }, []);
 
-  // Handle view profile
-  const handleViewProfile = (employee: Employee) => {
-    navigate(`/admin/employees/${employee.id}`);
-  };
+  // --- MEMOS (Derived State) ---
 
-  // Filter employees
-  const filteredEmployees = React.useMemo(() => {
+  // 1. Get Unique Departments for the Filter Dropdown
+  const uniqueDepartments = useMemo(() => {
+    // We use a Set to get unique values, filtering out nulls
+    const depts = employees.map((e) => e.department).filter(Boolean);
+    return [...new Set(depts)].sort();
+  }, [employees]);
+
+  // 2. Filter Logic
+  const filteredEmployees = useMemo(() => {
     return employees.filter((employee) => {
-      const fullName =
-        `${employee.firstName} ${employee.lastName}`.toLowerCase();
+      const fullName = employee.fullName ? employee.fullName.toLowerCase() : '';
+      const email = employee.email ? employee.email.toLowerCase() : '';
+
       const matchesName = fullName.includes(nameFilter.toLowerCase());
-      const matchesEmail = employee.email
-        .toLowerCase()
-        .includes(emailFilter.toLowerCase());
+      const matchesEmail = email.includes(emailFilter.toLowerCase());
       const matchesDept =
         departmentFilter === '' || employee.department === departmentFilter;
 
@@ -91,42 +99,44 @@ export default function EmployeeDataTable() {
     });
   }, [employees, nameFilter, emailFilter, departmentFilter]);
 
-  // Sort employees
-  const sortedEmployees = React.useMemo(() => {
+  // 3. Sort Logic
+  const sortedEmployees = useMemo(() => {
     if (!sortField) return filteredEmployees;
 
     return [...filteredEmployees].sort((a, b) => {
-      let aValue: any = a[sortField as keyof Employee];
-      let bValue: any = b[sortField as keyof Employee];
+      const aValue = a[sortField];
+      const bValue = b[sortField];
 
-      // Handle special sorting for "Name" (combining first and last)
-      if (sortField === 'name') {
-        aValue = `${a.firstName} ${a.lastName}`;
-        bValue = `${b.firstName} ${b.lastName}`;
+      // Handle nulls
+      if (aValue === bValue) return 0;
+      if (aValue === null || aValue === undefined) return 1;
+      if (bValue === null || bValue === undefined) return -1;
+
+      // String comparison
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sortDirection === 'asc'
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
       }
 
-      // Handle date sorting
-      if (sortField === 'hireDate') {
-        aValue = new Date(a.hireDate).getTime();
-        bValue = new Date(b.hireDate).getTime();
-      }
-
+      // Default comparison (numbers/dates)
       if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
       if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
       return 0;
     });
   }, [filteredEmployees, sortField, sortDirection]);
 
-  // Paginate
-  const paginatedEmployees = React.useMemo(() => {
+  // 4. Pagination Logic
+  const paginatedEmployees = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     return sortedEmployees.slice(startIndex, startIndex + itemsPerPage);
   }, [sortedEmployees, currentPage, itemsPerPage]);
 
   const totalPages = Math.ceil(sortedEmployees.length / itemsPerPage);
 
-  // Handle Sort Click
-  const handleSort = (field: string) => {
+  // --- HANDLERS ---
+
+  const handleSort = (field: keyof Employee) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
@@ -135,55 +145,37 @@ export default function EmployeeDataTable() {
     }
   };
 
-  // Selection Logic
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedEmployees(new Set(paginatedEmployees.map((emp) => emp.id)));
-    } else {
-      setSelectedEmployees(new Set());
-    }
-  };
-
-  const handleSelectEmployee = (employeeId: string, checked: boolean) => {
-    const newSelected = new Set(selectedEmployees);
-    if (checked) {
-      newSelected.add(employeeId);
-    } else {
-      newSelected.delete(employeeId);
-    }
-    setSelectedEmployees(newSelected);
-  };
-
-  // Badge Logic (using 'active' | 'inactive' from your types)
   const getStatusBadge = (status: string) => {
-    const normalizedStatus = status.toLowerCase();
+    const normalizedStatus = status ? status.toLowerCase() : 'unknown';
 
-    if (normalizedStatus === 'active') {
-      return (
-        <Badge className="bg-green-100 text-green-800 hover:bg-green-100 border-green-200">
-          Active
-        </Badge>
-      );
-    } else if (normalizedStatus === 'inactive') {
-      return (
-        <Badge className="bg-red-100 text-red-800 hover:bg-red-100 border-red-200">
-          Inactive
-        </Badge>
-      );
-    } else {
-      return <Badge variant="outline">{status}</Badge>;
+    switch (normalizedStatus) {
+      case 'active':
+        return (
+          <Badge className="bg-green-100 text-green-800 hover:bg-green-100 border-green-200">
+            Active
+          </Badge>
+        );
+      case 'inactive':
+        return (
+          <Badge className="bg-red-100 text-red-800 hover:bg-red-100 border-red-200">
+            Inactive
+          </Badge>
+        );
+      default:
+        return (
+          <Badge variant="outline" className="capitalize">
+            {normalizedStatus}
+          </Badge>
+        );
     }
   };
 
-  // Unique Departments
-  const departments = React.useMemo(() => {
-    return [...new Set(employees.map((emp) => emp.department))];
-  }, [employees]);
+  // --- RENDER ---
 
   if (loading) {
     return (
-      <div className="p-8 text-center text-muted-foreground">
-        Loading employees...
+      <div className="p-12 text-center text-muted-foreground animate-pulse">
+        Loading employee data...
       </div>
     );
   }
@@ -197,41 +189,50 @@ export default function EmployeeDataTable() {
             Employee Management
           </h1>
           <p className="text-muted-foreground">
-            Manage your organization's employees
+            Manage your organization's workforce
           </p>
         </div>
+        <Button onClick={() => navigate('/admin/employees/add')}>
+          + Add Employee
+        </Button>
       </div>
 
       {/* Filters Bar */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-        <div className="relative">
+        {/* Name Filter */}
+        <div className="relative w-full sm:max-w-xs">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Filter by name..."
             value={nameFilter}
             onChange={(e) => setNameFilter(e.target.value)}
-            className="pl-8 max-w-sm"
+            className="pl-8"
           />
         </div>
+
+        {/* Email Filter */}
         <Input
           placeholder="Filter by email..."
           value={emailFilter}
           onChange={(e) => setEmailFilter(e.target.value)}
-          className="max-w-sm"
+          className="w-full sm:max-w-xs"
         />
+
+        {/* Department Filter */}
         <select
           value={departmentFilter}
           onChange={(e) => setDepartmentFilter(e.target.value)}
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background max-w-sm"
+          className="flex h-10 w-full sm:max-w-xs items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <option value="">All Departments</option>
-          {departments.map((dept) => (
+          {uniqueDepartments.map((dept) => (
             <option key={dept} value={dept}>
               {dept}
             </option>
           ))}
         </select>
 
+        {/* Column Toggle */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="ml-auto">
@@ -239,16 +240,16 @@ export default function EmployeeDataTable() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            {Object.entries(visibleColumns).map(([key, visible]) => (
+            {Object.keys(visibleColumns).map((key) => (
               <DropdownMenuCheckboxItem
                 key={key}
                 className="capitalize"
-                checked={visible}
+                checked={visibleColumns[key as keyof typeof visibleColumns]}
                 onCheckedChange={(checked) =>
                   setVisibleColumns((prev) => ({ ...prev, [key]: checked }))
                 }
               >
-                {key}
+                {key.replace(/([A-Z])/g, ' $1').trim()}
               </DropdownMenuCheckboxItem>
             ))}
           </DropdownMenuContent>
@@ -258,57 +259,40 @@ export default function EmployeeDataTable() {
       {/* Table */}
       <div className="rounded-md border overflow-hidden">
         <table className="w-full caption-bottom text-sm">
-          <thead className="[&_tr]:border-b">
+          <thead className="[&_tr]:border-b bg-muted/30">
             <tr className="border-b transition-colors hover:bg-muted/50">
-              <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground w-[50px]">
-                <Checkbox
-                  checked={
-                    paginatedEmployees.length > 0 &&
-                    selectedEmployees.size === paginatedEmployees.length
-                  }
-                  onCheckedChange={handleSelectAll}
-                  aria-label="Select all"
-                />
-              </th>
-
-              {/* NAME COLUMN */}
               {visibleColumns.name && (
                 <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
                   <Button
                     variant="ghost"
-                    onClick={() => handleSort('name')}
-                    className="h-auto p-0 font-medium"
+                    onClick={() => handleSort('fullName')}
+                    className="-ml-4 h-8"
                   >
-                    Name
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                    Name <ArrowUpDown className="ml-2 h-4 w-4" />
                   </Button>
                 </th>
               )}
 
-              {/* EMAIL COLUMN */}
               {visibleColumns.email && (
                 <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
                   <Button
                     variant="ghost"
                     onClick={() => handleSort('email')}
-                    className="h-auto p-0 font-medium"
+                    className="-ml-4 h-8"
                   >
-                    Email
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                    Email <ArrowUpDown className="ml-2 h-4 w-4" />
                   </Button>
                 </th>
               )}
 
-              {/* DEPARTMENT COLUMN */}
               {visibleColumns.department && (
                 <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
                   <Button
                     variant="ghost"
                     onClick={() => handleSort('department')}
-                    className="h-auto p-0 font-medium"
+                    className="-ml-4 h-8"
                   >
-                    Department
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                    Department <ArrowUpDown className="ml-2 h-4 w-4" />
                   </Button>
                 </th>
               )}
@@ -318,23 +302,27 @@ export default function EmployeeDataTable() {
                   Position
                 </th>
               )}
+
               {visibleColumns.status && (
                 <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
                   Status
                 </th>
               )}
-              {visibleColumns.joinDate && (
+
+              {visibleColumns.hireDate && (
                 <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
-                  Join Date
+                  Hire Date
                 </th>
               )}
+
               {visibleColumns.actions && (
-                <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
+                <th className="h-12 px-4 text-right align-middle font-medium text-muted-foreground">
                   Actions
                 </th>
               )}
             </tr>
           </thead>
+
           <tbody className="[&_tr:last-child]:border-0">
             {paginatedEmployees.length > 0 ? (
               paginatedEmployees.map((employee) => (
@@ -342,51 +330,46 @@ export default function EmployeeDataTable() {
                   key={employee.id}
                   className="border-b transition-colors hover:bg-muted/50"
                 >
-                  <td className="p-4 align-middle">
-                    <Checkbox
-                      checked={selectedEmployees.has(employee.id)}
-                      onCheckedChange={(checked) =>
-                        handleSelectEmployee(employee.id, checked as boolean)
-                      }
-                      aria-label={`Select ${employee.firstName}`}
-                    />
-                  </td>
-
-                  {/* Name (Combined First + Last) */}
                   {visibleColumns.name && (
-                    <td className="p-4 align-middle font-medium">
-                      {employee.firstName} {employee.lastName}
+                    <td className="p-4 align-middle font-medium text-foreground">
+                      {employee.fullName}
                     </td>
                   )}
 
                   {visibleColumns.email && (
                     <td className="p-4 align-middle">{employee.email}</td>
                   )}
+
                   {visibleColumns.department && (
                     <td className="p-4 align-middle">{employee.department}</td>
                   )}
+
                   {visibleColumns.position && (
                     <td className="p-4 align-middle">{employee.position}</td>
                   )}
+
                   {visibleColumns.status && (
                     <td className="p-4 align-middle">
                       {getStatusBadge(employee.status)}
                     </td>
                   )}
 
-                  {/* Hire Date */}
-                  {visibleColumns.joinDate && (
-                    <td className="p-4 align-middle">{employee.hireDate}</td>
+                  {visibleColumns.hireDate && (
+                    <td className="p-4 align-middle">
+                      {formatDate(employee.hireDate)}
+                    </td>
                   )}
 
                   {visibleColumns.actions && (
-                    <td className="p-4 align-middle">
+                    <td className="p-4 align-middle text-right">
                       <Button
-                        variant="outline"
+                        variant="ghost"
                         size="sm"
-                        onClick={() => handleViewProfile(employee)}
+                        onClick={() =>
+                          navigate(`/admin/employees/${employee.id}`)
+                        }
                       >
-                        View Profile
+                        View
                       </Button>
                     </td>
                   )}
@@ -395,10 +378,8 @@ export default function EmployeeDataTable() {
             ) : (
               <tr>
                 <td
-                  colSpan={
-                    Object.values(visibleColumns).filter(Boolean).length + 1
-                  }
-                  className="h-24 text-center p-4 align-middle"
+                  colSpan={Object.values(visibleColumns).filter(Boolean).length}
+                  className="h-24 text-center p-4 align-middle text-muted-foreground"
                 >
                   No employees found.
                 </td>
@@ -411,32 +392,31 @@ export default function EmployeeDataTable() {
       {/* Pagination Controls */}
       <div className="flex items-center justify-between space-x-2 py-4">
         <div className="text-sm text-muted-foreground">
-          {selectedEmployees.size} of {sortedEmployees.length} row(s) selected.
+          Showing {paginatedEmployees.length} of {sortedEmployees.length}{' '}
+          result(s).
         </div>
         <div className="flex items-center space-x-2">
-          <p className="text-sm font-medium">
-            Page {currentPage} of {totalPages}
+          <p className="text-sm font-medium mr-4">
+            Page {currentPage} of {totalPages || 1}
           </p>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-              }
-              disabled={currentPage === totalPages}
-            >
-              Next
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+          >
+            Previous
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+            }
+            disabled={currentPage >= totalPages}
+          >
+            Next
+          </Button>
         </div>
       </div>
     </div>

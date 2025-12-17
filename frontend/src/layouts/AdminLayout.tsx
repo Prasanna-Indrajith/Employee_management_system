@@ -1,5 +1,5 @@
-import { PayrollTab } from '../tabs/admin/PayrollTab';
-import { SalaryReportsTab } from '../tabs/admin/SalaryReportsTab';
+import { PayrollTab } from '../components/tabs/admin/PayrollTab';
+import { SalaryReportsTab } from '../components/tabs/admin/SalaryReportsTab';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 
 import { AppSidebar } from '@/components/app-sidebar';
@@ -14,9 +14,9 @@ import AllEmployees from '@/components/tabs/admin/AllEmployees';
 import EmployeeProfile from '@/components/tabs/admin/EmployeeProfile';
 import TimeSheet from '@/components/tabs/admin/TimeSheet';
 import TimeOffRequests from '@/components/tabs/admin/TimeOffRequests';
-import EditEmployeeProfile from '../tabs/admin/EditEmployeeProfile';
+import EditEmployeeProfile from '../components/tabs/admin/EditEmployeeProfile';
 import AddEmployee from '@/components/tabs/admin/AddEmployee';
-import AdminProfile from '../tabs/admin/AdminProfile';
+import AdminProfile from '../components/tabs/admin/AdminProfile';
 
 export default function Page() {
   const location = useLocation();
@@ -46,13 +46,13 @@ export default function Page() {
 
                   {/* Employee Routes */}
                   {/* Edit Users Profile */}
+                  <Route path="employees/add" element={<AddEmployee />} />
+                  <Route path="employees/all" element={<AllEmployees />} />
+                  <Route path="employees/:id" element={<EmployeeProfile />} />
                   <Route
                     path="employees/:id/edit"
                     element={<EditEmployeeProfile />}
                   />
-                  <Route path="employees/add" element={<AddEmployee />} />
-                  <Route path="employees/all" element={<AllEmployees />} />
-                  <Route path="employees/:id" element={<EmployeeProfile />} />
 
                   {/* Attendance Routes */}
                   <Route path="attendance/timesheets" element={<TimeSheet />} />
@@ -66,14 +66,14 @@ export default function Page() {
                   <Route path="salary/report" element={<SalaryReportsTab />} />
 
                   {/* Default redirect */}
-                  <Route
+                  {/* <Route
                     path=""
                     element={<Navigate to="dashboard" replace />}
-                  />
-                  <Route
+                  /> */}
+                  {/* <Route
                     path="*"
                     element={<Navigate to="dashboard" replace />}
-                  />
+                  /> */}
                 </Routes>
               </div>
             </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Calendar,
   Filter,
@@ -21,7 +21,6 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  // CardAction, // Assuming you have this or we simulate it (I will simulate the layout with standard comps)
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -32,90 +31,78 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-
-// Mock time off requests data
-const mockRequests = [
-  {
-    id: 1,
-    employeeName: 'John Doe',
-    employeeId: 'emp001',
-    department: 'Engineering',
-    leaveType: 'Annual Leave',
-    startDate: '2024-02-15',
-    endDate: '2024-02-20',
-    duration: '5 days',
-    reason: 'Family vacation',
-    status: 'Pending',
-    requestedDate: '2024-01-20',
-  },
-  {
-    id: 2,
-    employeeName: 'Jane Smith',
-    employeeId: 'emp002',
-    department: 'Marketing',
-    leaveType: 'Sick Leave',
-    startDate: '2024-02-10',
-    endDate: '2024-02-12',
-    duration: '2 days',
-    reason: 'Medical appointment',
-    status: 'Pending',
-    requestedDate: '2024-01-25',
-  },
-  {
-    id: 3,
-    employeeName: 'Mike Johnson',
-    employeeId: 'emp003',
-    department: 'Sales',
-    leaveType: 'Annual Leave',
-    startDate: '2024-03-01',
-    endDate: '2024-03-05',
-    duration: '4 days',
-    reason: 'Personal matters',
-    status: 'Approved',
-    requestedDate: '2024-01-18',
-  },
-  {
-    id: 4,
-    employeeName: 'Sarah Wilson',
-    employeeId: 'emp004',
-    department: 'HR',
-    leaveType: 'Casual Leave',
-    startDate: '2024-02-08',
-    endDate: '2024-02-08',
-    duration: '1 day',
-    reason: 'Personal work',
-    status: 'Rejected',
-    requestedDate: '2024-02-01',
-  },
-  {
-    id: 5,
-    employeeName: 'David Brown',
-    employeeId: 'emp005',
-    department: 'Engineering',
-    leaveType: 'Annual Leave',
-    startDate: '2024-02-25',
-    endDate: '2024-02-28',
-    duration: '3 days',
-    reason: 'Wedding ceremony',
-    status: 'Pending',
-    requestedDate: '2024-01-22',
-  },
-];
+import { leaveAPI } from '@/services/api'; // Import your API
 
 export default function TimeOffRequests() {
-  const [requests, setRequests] = useState(mockRequests);
+  const [requests, setRequests] = useState<any[]>([]); // Dynamic State
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedDepartment, setSelectedDepartment] = useState('all');
-  const [processingId, setProcessingId] = useState<number | null>(null);
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
-  // Filter requests
+  // 1. Fetch Data on Load
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await leaveAPI.getAllRequests();
+        if (response.success && response.data) {
+          setRequests(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to load requests', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  // 2. Handle Approve/Reject
+  const handleStatusChange = async (
+    requestId: string,
+    newStatus: 'Approved' | 'Rejected'
+  ) => {
+    setProcessingId(requestId);
+    try {
+      const response = await leaveAPI.updateStatus(requestId, newStatus);
+
+      if (response.success) {
+        // Optimistically update the UI
+        setRequests((prev) =>
+          prev.map((req) =>
+            req.id === requestId ? { ...req, status: newStatus } : req
+          )
+        );
+      }
+    } catch (error) {
+      alert('Failed to update status');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  // 3. Helpers
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '-';
+    // Handle array or string (your backend might return array of dates)
+    const d = Array.isArray(dateString) ? dateString[0] : dateString;
+    return new Date(d).toLocaleDateString();
+  };
+
+  // Filter Logic
   const filteredRequests = requests.filter((request) => {
     const matchesSearch =
-      request.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.employeeId.toLowerCase().includes(searchTerm.toLowerCase());
+      (request.employeeName || '')
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      (request.employeeId || '')
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+
     const matchesStatus =
       selectedStatus === 'all' || request.status === selectedStatus;
+
     const matchesDepartment =
       selectedDepartment === 'all' || request.department === selectedDepartment;
 
@@ -127,20 +114,6 @@ export default function TimeOffRequests() {
   const approvedCount = requests.filter((r) => r.status === 'Approved').length;
   const rejectedCount = requests.filter((r) => r.status === 'Rejected').length;
 
-  // Handle approve/reject
-  const handleStatusChange = async (requestId: number, newStatus: string) => {
-    setProcessingId(requestId);
-    await new Promise((resolve) => setTimeout(resolve, 800)); // Simulate API
-
-    setRequests((prev) =>
-      prev.map((req) =>
-        req.id === requestId ? { ...req, status: newStatus } : req
-      )
-    );
-    setProcessingId(null);
-  };
-
-  // Status Badge Helper
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Approved':
@@ -187,10 +160,10 @@ export default function TimeOffRequests() {
         </div>
       </div>
 
-      {/* Stats Cards - Using the Gradient/Action Card Style */}
-      <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs">
-        {/* Total Requests */}
-        <Card className="@container/card">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Total */}
+        <Card className="bg-gradient-to-t from-primary/5 to-card">
           <CardHeader>
             <CardDescription>Total Requests</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums">
@@ -205,7 +178,7 @@ export default function TimeOffRequests() {
         </Card>
 
         {/* Pending */}
-        <Card className="@container/card">
+        <Card className="bg-gradient-to-t from-orange-500/5 to-card">
           <CardHeader>
             <CardDescription>Pending Action</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums text-orange-600">
@@ -223,7 +196,7 @@ export default function TimeOffRequests() {
         </Card>
 
         {/* Approved */}
-        <Card className="@container/card">
+        <Card className="bg-gradient-to-t from-green-500/5 to-card">
           <CardHeader>
             <CardDescription>Approved</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums text-green-600">
@@ -241,7 +214,7 @@ export default function TimeOffRequests() {
         </Card>
 
         {/* Rejected */}
-        <Card className="@container/card">
+        <Card className="bg-gradient-to-t from-red-500/5 to-card">
           <CardHeader>
             <CardDescription>Rejected</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums text-red-600">
@@ -263,8 +236,7 @@ export default function TimeOffRequests() {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            Filter Requests
+            <Filter className="h-4 w-4 text-muted-foreground" /> Filter Requests
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -272,7 +244,7 @@ export default function TimeOffRequests() {
             <div className="relative flex-1">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by name or ID..."
+                placeholder="Search by name..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-9"
@@ -298,10 +270,11 @@ export default function TimeOffRequests() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Departments</SelectItem>
+                {/* Dynamically populate this if you have a department API, otherwise hardcode common ones */}
                 <SelectItem value="Engineering">Engineering</SelectItem>
-                <SelectItem value="Marketing">Marketing</SelectItem>
-                <SelectItem value="Sales">Sales</SelectItem>
                 <SelectItem value="HR">HR</SelectItem>
+                <SelectItem value="Sales">Sales</SelectItem>
+                <SelectItem value="Marketing">Marketing</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -310,7 +283,13 @@ export default function TimeOffRequests() {
 
       {/* Requests List */}
       <div className="grid grid-cols-1 gap-4">
-        {filteredRequests.length > 0 ? (
+        {loading ? (
+          <Card>
+            <CardContent className="py-12 text-center text-muted-foreground">
+              Loading requests...
+            </CardContent>
+          </Card>
+        ) : filteredRequests.length > 0 ? (
           filteredRequests.map((request) => (
             <Card
               key={request.id}
@@ -339,13 +318,14 @@ export default function TimeOffRequests() {
                         <h3 className="font-semibold text-lg leading-none">
                           {request.employeeName}
                         </h3>
+                        {/* We use id suffix as a visual ID if no real employee ID is available */}
                         <span className="text-sm text-muted-foreground font-mono">
-                          {request.employeeId}
+                          #{request.employeeId?.substring(0, 6)}
                         </span>
                         {getStatusBadge(request.status)}
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        {request.department}
+                        {request.department || 'General Staff'}
                       </p>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4 text-sm">
@@ -373,7 +353,12 @@ export default function TimeOffRequests() {
                           </span>
                           <span className="font-medium flex items-center gap-1.5">
                             <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                            {request.startDate} - {request.endDate}
+                            {/* Logic to show Start - End based on your date array */}
+                            {request.dates && request.dates.length > 0
+                              ? `${formatDate(request.dates[0])} - ${formatDate(
+                                  request.dates[request.dates.length - 1]
+                                )}`
+                              : 'N/A'}
                           </span>
                         </div>
                         <div className="flex flex-col">
@@ -381,7 +366,7 @@ export default function TimeOffRequests() {
                             Requested On
                           </span>
                           <span className="font-medium">
-                            {request.requestedDate}
+                            {formatDate(request.requestedOn)}
                           </span>
                         </div>
                       </div>
@@ -413,8 +398,7 @@ export default function TimeOffRequests() {
                             <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
                           ) : (
                             <>
-                              <Check className="mr-2 h-4 w-4" />
-                              Approve
+                              <Check className="mr-2 h-4 w-4" /> Approve
                             </>
                           )}
                         </Button>
@@ -431,8 +415,7 @@ export default function TimeOffRequests() {
                             <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent" />
                           ) : (
                             <>
-                              <X className="mr-2 h-4 w-4" />
-                              Reject
+                              <X className="mr-2 h-4 w-4" /> Reject
                             </>
                           )}
                         </Button>
@@ -454,9 +437,6 @@ export default function TimeOffRequests() {
                 <FileText className="h-8 w-8 text-muted-foreground" />
               </div>
               <p className="font-medium text-lg">No requests found</p>
-              <p className="text-muted-foreground text-sm">
-                Try adjusting your filters to see more results.
-              </p>
             </CardContent>
           </Card>
         )}

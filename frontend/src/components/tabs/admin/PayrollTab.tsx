@@ -1,5 +1,3 @@
-// src/components/tabs/PayrollTab.tsx
-
 import {
   DollarSign,
   Users,
@@ -18,7 +16,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  CardAction, // Assumed available based on previous context
+  CardAction,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -35,6 +33,46 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import type { PayrollRun } from '@/types'; // Import your type
+
+// Mock Data matching the PayrollRun Interface
+const payrollRuns: PayrollRun[] = [
+  {
+    id: 'run_001',
+    runDate: 'Oct 1, 2025',
+    payPeriodStart: 'Sep 1, 2025',
+    payPeriodEnd: 'Sep 30, 2025',
+    totalDisbursed: 148120.5,
+    status: 'Processed',
+    employeeCount: 1250,
+  },
+  {
+    id: 'run_002',
+    runDate: 'Sep 1, 2025',
+    payPeriodStart: 'Aug 1, 2025',
+    payPeriodEnd: 'Aug 31, 2025',
+    totalDisbursed: 145900.0,
+    status: 'Processed',
+    employeeCount: 1245,
+  },
+  {
+    id: 'run_003',
+    runDate: 'Aug 1, 2025',
+    payPeriodStart: 'Jul 1, 2025',
+    payPeriodEnd: 'Jul 31, 2025',
+    totalDisbursed: 142500.0,
+    status: 'Processed',
+    employeeCount: 1240,
+  },
+];
+
+// Current Cycle Data (Mocked for active card)
+const currentCycle = {
+  estimatedCost: 150450.0,
+  payableEmployees: 1250,
+  status: 'Pending',
+  period: 'Oct 01 - Oct 31',
+};
 
 export function PayrollTab() {
   return (
@@ -59,14 +97,14 @@ export function PayrollTab() {
         </div>
       </div>
 
-      {/* 2. Current Cycle Stats - Using Gradient Card Style */}
+      {/* 2. Current Cycle Stats */}
       <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 md:grid-cols-3 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs">
         {/* Total Cost Card */}
         <Card className="@container/card">
           <CardHeader>
             <CardDescription>Estimated Cost</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              $150,450.00
+              ${currentCycle.estimatedCost.toLocaleString()}
             </CardTitle>
             <CardAction>
               <Badge
@@ -85,7 +123,7 @@ export function PayrollTab() {
           <CardHeader>
             <CardDescription>Payable Employees</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              1,250
+              {currentCycle.payableEmployees.toLocaleString()}
             </CardTitle>
             <CardAction>
               <Badge variant="outline">
@@ -101,7 +139,7 @@ export function PayrollTab() {
           <CardHeader>
             <CardDescription>Cycle Status</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl text-orange-600">
-              Pending
+              {currentCycle.status}
             </CardTitle>
             <CardAction>
               <Badge
@@ -109,14 +147,14 @@ export function PayrollTab() {
                 className="text-orange-600 border-orange-200 bg-orange-50"
               >
                 <Activity className="size-4 mr-1" />
-                Oct 01 - Oct 31
+                {currentCycle.period}
               </Badge>
             </CardAction>
           </CardHeader>
         </Card>
       </div>
 
-      {/* 3. Payroll History Table */}
+      {/* 3. Payroll History Table (Mapped) */}
       <Card>
         <CardHeader>
           <CardTitle>Payroll History</CardTitle>
@@ -137,83 +175,55 @@ export function PayrollTab() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {/* Row 1 */}
-                <TableRow className="hover:bg-muted/50">
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      Oct 1, 2025
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    Sep 1 - Sep 30, 2025
-                  </TableCell>
-                  <TableCell className="font-mono">$148,120.50</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      className="text-green-600 border-green-200 bg-green-50"
-                    >
-                      Processed
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
-                          <FileText className="mr-2 h-4 w-4" /> View Details
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Download className="mr-2 h-4 w-4" /> Download Report
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-
-                {/* Row 2 */}
-                <TableRow className="hover:bg-muted/50">
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      Sep 1, 2025
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    Aug 1 - Aug 31, 2025
-                  </TableCell>
-                  <TableCell className="font-mono">$145,900.00</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      className="text-green-600 border-green-200 bg-green-50"
-                    >
-                      Processed
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
-                          <FileText className="mr-2 h-4 w-4" /> View Details
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Download className="mr-2 h-4 w-4" /> Download Report
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
+                {payrollRuns.map((run) => (
+                  <TableRow key={run.id} className="hover:bg-muted/50">
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        {run.runDate}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {run.payPeriodStart} - {run.payPeriodEnd}
+                    </TableCell>
+                    <TableCell className="font-mono">
+                      $
+                      {run.totalDisbursed.toLocaleString('en-US', {
+                        minimumFractionDigits: 2,
+                      })}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={
+                          run.status === 'Processed'
+                            ? 'text-green-600 border-green-200 bg-green-50'
+                            : 'text-red-600 border-red-200 bg-red-50'
+                        }
+                      >
+                        {run.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem>
+                            <FileText className="mr-2 h-4 w-4" /> View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>
+                            <Download className="mr-2 h-4 w-4" /> Download
+                            Report
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </div>

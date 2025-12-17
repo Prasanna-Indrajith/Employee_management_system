@@ -1,12 +1,10 @@
-// src/components/tabs/SalaryReportsTab.tsx
-
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-  CardAction, // Assumed available based on previous context
+  CardAction,
 } from '@/components/ui/card';
 import {
   Table,
@@ -31,16 +29,53 @@ import {
   Filter,
   DollarSign,
   TrendingUp,
-  Briefcase,
   Users,
-  Eye,
+  Briefcase,
 } from 'lucide-react';
 
 // Keep your existing Chart imports
 import { DepartmentSalaryChart } from '@/components/ui/pie-chart-label';
-import { SalaryGrowthChart } from '../../ui/line-chart';
+import { SalaryGrowthChart } from '@/components/ui/line-chart';
+import type { EmployeeSalaryDetail } from '@/types'; // Import your type
+
+// Mock Data matching EmployeeSalaryDetail
+const salaryDetails: EmployeeSalaryDetail[] = [
+  {
+    id: 'emp001',
+    fullName: 'John Doe',
+    department: 'Engineering',
+    currentSalary: 85000,
+    lastRaiseDate: 'Jan 1, 2025',
+    avatarUrl: '/avatars/01.png',
+  },
+  {
+    id: 'emp002',
+    fullName: 'Jane Smith',
+    department: 'Marketing',
+    currentSalary: 72500,
+    lastRaiseDate: 'Mar 15, 2025',
+    avatarUrl: '/avatars/02.png',
+  },
+  {
+    id: 'emp003',
+    fullName: 'Robert Fox',
+    department: 'Sales',
+    currentSalary: 68000,
+    lastRaiseDate: 'Feb 10, 2025',
+    avatarUrl: undefined, // To test fallback
+  },
+];
 
 export function SalaryReportsTab() {
+  // Helper to generate initials from name
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase();
+  };
+
   return (
     <div className="space-y-6">
       {/* 1. Header */}
@@ -56,7 +91,7 @@ export function SalaryReportsTab() {
         </Button>
       </div>
 
-      {/* 2. Stats Overview - Gradient Cards */}
+      {/* 2. Stats Overview */}
       <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 md:grid-cols-3 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs">
         {/* Total Annual Payroll */}
         <Card className="@container/card">
@@ -183,7 +218,7 @@ export function SalaryReportsTab() {
         </Card>
       </div>
 
-      {/* 5. Detailed Table */}
+      {/* 5. Detailed Table (Mapped) */}
       <Card>
         <CardHeader>
           <CardTitle>Detailed Breakdown</CardTitle>
@@ -200,73 +235,46 @@ export function SalaryReportsTab() {
                   <TableHead>Department</TableHead>
                   <TableHead>Current Salary</TableHead>
                   <TableHead>Last Raise</TableHead>
-                  {/* <TableHead className="text-right">Action</TableHead> */}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {/* Row 1 */}
-                <TableRow className="hover:bg-muted/50">
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8 rounded-lg">
-                        <AvatarImage src="/avatars/01.png" alt="JD" />
-                        <AvatarFallback className="rounded-lg">
-                          JD
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex flex-col">
-                        <span>John Doe</span>
-                        <span className="text-xs text-muted-foreground">
-                          emp001
-                        </span>
+                {salaryDetails.map((item) => (
+                  <TableRow key={item.id} className="hover:bg-muted/50">
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-8 w-8 rounded-lg">
+                          <AvatarImage
+                            src={item.avatarUrl}
+                            alt={item.fullName}
+                          />
+                          <AvatarFallback className="rounded-lg">
+                            {getInitials(item.fullName)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col">
+                          <span>{item.fullName}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {item.id}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div className="p-1 bg-secondary rounded-md">
-                        <Briefcase className="h-3 w-3 text-muted-foreground" />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <div className="p-1 bg-secondary rounded-md">
+                          <Briefcase className="h-3 w-3 text-muted-foreground" />
+                        </div>
+                        <span>{item.department}</span>
                       </div>
-                      <span>Engineering</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-mono text-base">$85,000</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    Jan 1, 2025
-                  </TableCell>
-                </TableRow>
-
-                {/* Row 2 */}
-                <TableRow className="hover:bg-muted/50">
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8 rounded-lg">
-                        <AvatarImage src="/avatars/02.png" alt="JS" />
-                        <AvatarFallback className="rounded-lg">
-                          JS
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex flex-col">
-                        <span>Jane Smith</span>
-                        <span className="text-xs text-muted-foreground">
-                          emp002
-                        </span>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div className="p-1 bg-secondary rounded-md">
-                        <Briefcase className="h-3 w-3 text-muted-foreground" />
-                      </div>
-                      <span>Marketing</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-mono text-base">$72,500</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    Mar 15, 2025
-                  </TableCell>
-                </TableRow>
+                    </TableCell>
+                    <TableCell className="font-mono text-base">
+                      ${item.currentSalary.toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {item.lastRaiseDate}
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </div>

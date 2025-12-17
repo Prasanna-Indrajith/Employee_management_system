@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Table,
   TableBody,
@@ -19,55 +19,62 @@ import {
 } from '@/components/ui/card';
 import { IconDownload, IconFileText, IconLoader2 } from '@tabler/icons-react';
 import { Badge } from '@/components/ui/badge';
+import type { Payslip } from '@/types'; // Import your type
 
 export default function MyPayslips() {
-  const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
-  // Mock Payslip Data
-  const payslips = [
+  // Mock Payslip Data matching the Payslip Interface
+  const payslips: Payslip[] = [
     {
-      id: 101,
-      month: 'October',
-      year: 2025,
-      amount: 'Rs. 150,000',
+      id: 'slip_101',
+      employeeId: 'emp001',
+      payrollRunId: 'run001',
+      monthYear: 'October 2025',
+      netSalary: 150000,
       status: 'Paid',
-      date: 'Oct 30, 2025',
+      issueDate: 'Oct 30, 2025',
     },
     {
-      id: 102,
-      month: 'September',
-      year: 2025,
-      amount: 'Rs. 150,000',
+      id: 'slip_102',
+      employeeId: 'emp001',
+      payrollRunId: 'run002',
+      monthYear: 'September 2025',
+      netSalary: 150000,
       status: 'Paid',
-      date: 'Sep 30, 2025',
+      issueDate: 'Sep 30, 2025',
     },
     {
-      id: 103,
-      month: 'August',
-      year: 2025,
-      amount: 'Rs. 145,000',
+      id: 'slip_103',
+      employeeId: 'emp001',
+      payrollRunId: 'run003',
+      monthYear: 'August 2025',
+      netSalary: 145000,
       status: 'Paid',
-      date: 'Aug 30, 2025',
+      issueDate: 'Aug 30, 2025',
     },
     {
-      id: 104,
-      month: 'July',
-      year: 2025,
-      amount: 'Rs. 145,000',
+      id: 'slip_104',
+      employeeId: 'emp001',
+      payrollRunId: 'run004',
+      monthYear: 'July 2025',
+      netSalary: 145000,
       status: 'Paid',
-      date: 'Jul 30, 2025',
+      issueDate: 'Jul 30, 2025',
     },
   ];
 
   // Logic to simulate PDF download
-  const handleDownload = (id: number, month: string) => {
+  const handleDownload = (id: string, monthYear: string) => {
     setDownloadingId(id);
 
     // Simulate network request/PDF generation time
     setTimeout(() => {
       setDownloadingId(null);
       // In a real app, this would trigger: window.open(pdfUrl, '_blank');
-      alert(`Downloaded Payslip_${month}_2025.pdf successfully!`);
+      alert(
+        `Downloaded Payslip_${monthYear.replace(' ', '_')}.pdf successfully!`
+      );
     }, 1500);
   };
 
@@ -104,21 +111,26 @@ export default function MyPayslips() {
                       <div className="p-2 bg-secondary rounded-md">
                         <IconFileText className="size-4" />
                       </div>
-                      <span>
-                        {slip.month} {slip.year}
-                      </span>
+                      <span>{slip.monthYear}</span>
                     </div>
                   </TableCell>
 
                   <TableCell className="text-muted-foreground">
-                    {slip.date}
+                    {slip.issueDate}
                   </TableCell>
-                  <TableCell className="font-semibold">{slip.amount}</TableCell>
+
+                  <TableCell className="font-semibold font-mono">
+                    Rs. {slip.netSalary.toLocaleString()}
+                  </TableCell>
 
                   <TableCell>
                     <Badge
                       variant="outline"
-                      className="bg-green-50 text-green-700 border-green-200"
+                      className={
+                        slip.status === 'Paid'
+                          ? 'bg-green-50 text-green-700 border-green-200'
+                          : 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                      }
                     >
                       {slip.status}
                     </Badge>
@@ -129,7 +141,7 @@ export default function MyPayslips() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleDownload(slip.id, slip.month)}
+                      onClick={() => handleDownload(slip.id, slip.monthYear)}
                       disabled={downloadingId === slip.id}
                     >
                       {downloadingId === slip.id ? (
