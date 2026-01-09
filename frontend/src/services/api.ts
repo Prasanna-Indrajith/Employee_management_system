@@ -6,6 +6,9 @@ import type {
   CreateEmployeeData,
   User,
   LookupData,
+  Payslip,
+  PayrollRun,
+  SalaryHistory,
 } from '../types';
 
 // Point to your Backend URL
@@ -112,15 +115,26 @@ export const employeeAPI = {
 
   // 6. Delete Employee (Placeholder)
   delete: async (id: string): Promise<ApiResponse<null>> => {
-    // TODO: Implement DELETE /employees/:id in backend
-    console.warn('Delete API not implemented yet');
-    return { success: true, data: null };
+    const response = await api.delete(`/employees/${id}`);
+    return response.data;
   },
 
   // 7. My Profile (Placeholder)
   getMyProfile: async (): Promise<ApiResponse<Employee>> => {
-    console.warn('GetMyProfile API not implemented yet');
-    return { success: true, data: {} as Employee };
+    // Calls the backend route we just created: router.get('/me', ...)
+    const response = await api.get('/employees/me');
+    return response.data;
+  },
+
+  // Update my profile
+  updateMyProfile: async (data: {
+    phone: string;
+    // location: string;
+    bio: string;
+    skills: string[];
+  }) => {
+    const response = await api.put('/employees/me', data);
+    return response.data;
   },
 
   // Timesheet
@@ -150,19 +164,13 @@ export const profileAPI = {
   //   return response.data;
   // },
 
-  // // 2. Update MY Profile (e.g. change phone number)
-  // updateMyProfile: async (data: Partial<CreateEmployeeData>): Promise<ApiResponse<Employee>> => {
+  // // // 2. Update MY Profile (e.g. change phone number)
+  // updateMyProfile: async (
+  //   data: Partial<CreateEmployeeData>
+  // ): Promise<ApiResponse<Employee>> => {
   //   const response = await api.put('/employees/profile/me', data);
   //   return response.data;
   // },
-
-  // // 3. Get MY Timesheets
-  // getMyTimesheets: async (date?: string): Promise<ApiResponse<any[]>> => {
-  //   const query = date ? `?date=${date}` : '';
-  //   // Backend should filter this to ONLY return the logged-in user's records
-  //   const response = await api.get(`/employees/timesheets/me${query}`);
-  //   return response.data;
-  // }
 };
 
 export interface CreateLeaveData {
@@ -201,5 +209,70 @@ export const leaveAPI = {
     return response.data;
   },
 };
+
+// --- PAYROLL API ---
+export const payrollAPI = {
+  // 1. Get All Payroll Runs (Admin Dashboard)
+  getAllRuns: async (): Promise<ApiResponse<PayrollRun[]>> => {
+    const response = await api.get('/payroll/runs');
+    return response.data;
+  },
+
+  // 2. Get My Payslips (Employee Portal)
+  getMyPayslips: async (): Promise<ApiResponse<Payslip[]>> => {
+    const response = await api.get('/payroll/payslips/me');
+    return response.data;
+  },
+
+  // 3. Get My Salary History (Employee Portal)
+  getMySalaryHistory: async (): Promise<ApiResponse<SalaryHistory[]>> => {
+    const response = await api.get('/payroll/salary-history/me');
+    return response.data;
+  },
+
+  getSalaryReports: async (): Promise<ApiResponse<SalaryAnalyticsResponse>> => {
+    const response = await api.get('/payroll/reports');
+    return response.data;
+  },
+};
+
+export interface SalaryAnalyticsResponse {
+  summary: {
+    totalAnnual: number;
+    averageSalary: number;
+    yoyGrowth: number;
+  };
+  distribution: DepartmentSalaryStats[];
+  details: EmployeeSalaryDetail[];
+}
+
+// Matches "Detailed Breakdown" Table
+export interface EmployeeSalaryDetail {
+  id: string;
+  fullName: string;
+  department: string;
+  currentSalary: number;
+  lastRaiseDate: string;
+  avatarUrl?: string;
+}
+
+// Matches "Salary Distribution" Pie Chart
+export interface DepartmentSalaryStats {
+  department: string;
+  totalSalary: number;
+  percentage: number;
+  color: string;
+}
+
+// Matches the Analytics Response Wrapper
+export interface SalaryAnalyticsResponse {
+  summary: {
+    totalAnnual: number;
+    averageSalary: number;
+    yoyGrowth: number;
+  };
+  distribution: DepartmentSalaryStats[];
+  details: EmployeeSalaryDetail[];
+}
 
 export default api;

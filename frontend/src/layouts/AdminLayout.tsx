@@ -70,10 +70,10 @@ export default function Page() {
                     path=""
                     element={<Navigate to="dashboard" replace />}
                   /> */}
-                  {/* <Route
+                  <Route
                     path="*"
                     element={<Navigate to="dashboard" replace />}
-                  /> */}
+                  />
                 </Routes>
               </div>
             </div>

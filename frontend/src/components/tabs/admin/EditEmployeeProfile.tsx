@@ -24,6 +24,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 // API & Types
 import { employeeAPI } from '@/services/api';
 import type { LookupData, Employee } from '@/types';
+import { toast } from 'sonner';
 
 export default function EditEmployee() {
   const navigate = useNavigate();
@@ -172,9 +173,7 @@ export default function EditEmployee() {
     e.preventDefault();
     if (!validateForm() || !id) return;
 
-    setIsSubmitting(true);
-
-    // Format Phone
+    // 1. Data Preparation Logic
     let formattedPhone = formData.phone;
     if (!formattedPhone.startsWith('+94')) {
       formattedPhone = formattedPhone.startsWith('0')
@@ -182,12 +181,9 @@ export default function EditEmployee() {
         : `+94${formattedPhone}`;
     }
 
-    // Reconstruct Full Email
     const fullEmail = `${formData.emailUser}@orian.com`.toLowerCase();
 
-    // Prepare Payload
     const payload: any = {
-      // Use Partial<CreateEmployeeData> in real types
       fullName: `${formData.firstName} ${formData.lastName}`,
       email: fullEmail,
       phone: formattedPhone,
@@ -199,19 +195,29 @@ export default function EditEmployee() {
       status: formData.status,
     };
 
-    try {
-      // You need to ensure employeeAPI.update is implemented in api.ts!
-      const response = await employeeAPI.update(id, payload);
+    // 2. The Clean UI Implementation
+    setIsSubmitting(true);
 
-      if (response.success) {
-        navigate('/admin/employees/all');
-      }
-    } catch (error) {
-      console.error('Update failed', error);
-      alert('Failed to update profile.');
-    } finally {
-      setIsSubmitting(false);
-    }
+    toast.promise(employeeAPI.update(id, payload), {
+      loading: `Updating records for ${formData.firstName}...`,
+      success: (response) => {
+        // Check if the API returned success: true
+        if (response.success) {
+          navigate('/admin/employees/all');
+          return 'Employee profile updated successfully.';
+        }
+        throw new Error(response.message || 'Update rejected by server.');
+      },
+      error: (err) => {
+        console.error('Update failed', err);
+        // Extracts backend error message or uses a fallback
+        return (
+          err.response?.data?.message ||
+          'Failed to update profile. Please check the data.'
+        );
+      },
+      finally: () => setIsSubmitting(false),
+    });
   };
 
   if (isLoading) {

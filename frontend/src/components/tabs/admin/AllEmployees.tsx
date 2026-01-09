@@ -36,7 +36,7 @@ export default function EmployeeDataTable() {
 
   // Filters
   const [nameFilter, setNameFilter] = useState('');
-  const [emailFilter, setEmailFilter] = useState('');
+  // const [emailFilter, setEmailFilter] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('');
 
   // Sorting
@@ -88,16 +88,16 @@ export default function EmployeeDataTable() {
   const filteredEmployees = useMemo(() => {
     return employees.filter((employee) => {
       const fullName = employee.fullName ? employee.fullName.toLowerCase() : '';
-      const email = employee.email ? employee.email.toLowerCase() : '';
+      // const email = employee.email ? employee.email.toLowerCase() : '';
 
       const matchesName = fullName.includes(nameFilter.toLowerCase());
-      const matchesEmail = email.includes(emailFilter.toLowerCase());
+      // const matchesEmail = email.includes(emailFilter.toLowerCase());
       const matchesDept =
         departmentFilter === '' || employee.department === departmentFilter;
 
-      return matchesName && matchesEmail && matchesDept;
+      return matchesName && matchesDept;
     });
-  }, [employees, nameFilter, emailFilter, departmentFilter]);
+  }, [employees, nameFilter, departmentFilter]);
 
   // 3. Sort Logic
   const sortedEmployees = useMemo(() => {
@@ -211,12 +211,12 @@ export default function EmployeeDataTable() {
         </div>
 
         {/* Email Filter */}
-        <Input
+        {/* <Input
           placeholder="Filter by email..."
           value={emailFilter}
           onChange={(e) => setEmailFilter(e.target.value)}
           className="w-full sm:max-w-xs"
-        />
+        /> */}
 
         {/* Department Filter */}
         <select
@@ -341,6 +341,7 @@ export default function EmployeeDataTable() {
                   )}
 
                   {visibleColumns.department && (
+                    // <td className="p-4 align-middle">{employee.department}</td>
                     <td className="p-4 align-middle">{employee.department}</td>
                   )}
 

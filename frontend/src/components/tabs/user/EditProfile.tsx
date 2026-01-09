@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Save, AlertCircle, Lock } from 'lucide-react';
+import { ArrowLeft, Save, AlertCircle, Lock, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,23 +15,54 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
 import { useNavigate } from 'react-router-dom';
+import { employeeAPI } from '@/services/api'; // Import API
+import { toast } from 'sonner'; // Assuming you have shadcn toast
 
 export default function EditUserProfile() {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Form State (Mock data loaded)
+  // Form State
   const [formData, setFormData] = useState({
-    name: 'Kasun Perera',
-    email: 'kasun.perera@orian.com',
-    id: 'emp005',
-    department: 'Engineering',
-    position: 'Senior Developer',
-    phone: '+94 77 123 4567',
-    location: 'Colombo, Sri Lanka',
-    bio: 'Frontend developer with a passion for creating beautiful and intuitive user interfaces.',
-    skills: 'React, Vue.js, CSS, JavaScript, UI/UX Design', // Comma separated for easier editing
+    name: '',
+    email: '',
+    department: '',
+    position: '',
+    phone: '',
+    location: '',
+    bio: '',
+    skills: '', // We store as string for editing "React, Vue"
   });
+
+  // 1. Fetch Current Data on Mount
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await employeeAPI.getMyProfile();
+        if (response.success && response.data) {
+          const emp = response.data;
+          setFormData({
+            name: emp.fullName,
+            email: emp.email,
+            department: emp.department,
+            position: emp.position,
+            phone: emp.phone || '',
+            location: emp.location || '',
+            bio: emp.bio || '',
+            // Join array back to string for input field
+            skills: emp.skills ? emp.skills.join(', ') : '',
+          });
+        }
+      } catch (error) {
+        console.error('Failed to load profile', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, []);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -43,15 +74,45 @@ export default function EditUserProfile() {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Simulate API Update
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    // 1. Prepare your data (keep this outside the promise)
+    const skillsArray = formData.skills
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
 
-    // In real app: Update context/DB
-    console.log('Updated Profile:', formData);
+    const payload = {
+      phone: formData.phone,
+      bio: formData.bio,
+      skills: skillsArray,
+    };
 
-    setIsSubmitting(false);
-    navigate('/user/profile'); // Go back to profile view
+    // 2. The Clean Approach
+    toast.promise(employeeAPI.updateMyProfile(payload), {
+      loading: 'Saving your changes...',
+      success: (response) => {
+        // Logic for when the API call finishes successfully
+        if (response.success) {
+          navigate('/user/profile');
+          return 'Profile updated successfully!';
+        } else {
+          // If the API returned success: false, we throw an error to trigger the error toast
+          throw new Error(response.message || 'Failed to update');
+        }
+      },
+      error: (err) => {
+        // Logic for network errors or thrown errors
+        return err.message || 'There was a problem saving your profile.';
+      },
+    });
   };
+
+  if (loading) {
+    return (
+      <div className="flex h-96 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="w-full mx-auto space-y-6 max-w-4xl">
@@ -119,9 +180,7 @@ export default function EditUserProfile() {
         <Card>
           <CardHeader>
             <CardTitle>Personal Information</CardTitle>
-            <CardDescription>
-              Update your contact details and location.
-            </CardDescription>
+            <CardDescription>Update your contact details.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -132,16 +191,20 @@ export default function EditUserProfile() {
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
+                  placeholder="+94 ..."
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="location">Location / City</Label>
+                <Label className="text-muted-foreground" htmlFor="location">
+                  Location / City
+                </Label>
                 <Input
+                  disabled
                   id="location"
                   name="location"
                   value={formData.location}
-                  onChange={handleChange}
+                  className="bg-muted"
                 />
               </div>
             </div>
@@ -166,6 +229,7 @@ export default function EditUserProfile() {
                 onChange={handleChange}
                 rows={4}
                 className="resize-none"
+                placeholder="Briefly describe your role and interests..."
               />
             </div>
 
@@ -195,10 +259,10 @@ export default function EditUserProfile() {
           >
             Cancel
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitting} onClick={handleSubmit}>
             {isSubmitting ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent mr-2" />
+                <Loader2 className="animate-spin mr-2 h-4 w-4" />
                 Saving...
               </>
             ) : (

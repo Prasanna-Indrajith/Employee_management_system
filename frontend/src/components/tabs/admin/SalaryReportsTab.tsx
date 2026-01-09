@@ -1,3 +1,6 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import {
   Card,
   CardContent,
@@ -31,42 +34,40 @@ import {
   TrendingUp,
   Users,
   Briefcase,
+  Loader2,
 } from 'lucide-react';
 
 // Keep your existing Chart imports
 import { DepartmentSalaryChart } from '@/components/ui/pie-chart-label';
 import { SalaryGrowthChart } from '@/components/ui/line-chart';
-import type { EmployeeSalaryDetail } from '@/types'; // Import your type
-
-// Mock Data matching EmployeeSalaryDetail
-const salaryDetails: EmployeeSalaryDetail[] = [
-  {
-    id: 'emp001',
-    fullName: 'John Doe',
-    department: 'Engineering',
-    currentSalary: 85000,
-    lastRaiseDate: 'Jan 1, 2025',
-    avatarUrl: '/avatars/01.png',
-  },
-  {
-    id: 'emp002',
-    fullName: 'Jane Smith',
-    department: 'Marketing',
-    currentSalary: 72500,
-    lastRaiseDate: 'Mar 15, 2025',
-    avatarUrl: '/avatars/02.png',
-  },
-  {
-    id: 'emp003',
-    fullName: 'Robert Fox',
-    department: 'Sales',
-    currentSalary: 68000,
-    lastRaiseDate: 'Feb 10, 2025',
-    avatarUrl: undefined, // To test fallback
-  },
-];
+import { payrollAPI } from '@/services/api';
+import type { EmployeeSalaryDetail, DepartmentSalaryStats } from '@/types';
 
 export function SalaryReportsTab() {
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<{
+    summary: { totalAnnual: number; averageSalary: number; yoyGrowth: number };
+    distribution: DepartmentSalaryStats[];
+    details: EmployeeSalaryDetail[];
+  } | null>(null);
+
+  // 1. Fetch Analytics Data
+  useEffect(() => {
+    const fetchReports = async () => {
+      try {
+        const response = await payrollAPI.getSalaryReports();
+        if (response.success && response.data) {
+          setData(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch salary reports', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchReports();
+  }, []);
+
   // Helper to generate initials from name
   const getInitials = (name: string) => {
     return name
@@ -75,6 +76,18 @@ export function SalaryReportsTab() {
       .join('')
       .toUpperCase();
   };
+
+  if (loading) {
+    return (
+      <div className="flex h-96 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  // Fallback if data failed
+  if (!data)
+    return <div className="p-4 text-center">Failed to load reports.</div>;
 
   return (
     <div className="space-y-6">
@@ -91,14 +104,14 @@ export function SalaryReportsTab() {
         </Button>
       </div>
 
-      {/* 2. Stats Overview */}
+      {/* 2. Stats Overview (Dynamic) */}
       <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 md:grid-cols-3 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs">
         {/* Total Annual Payroll */}
         <Card className="@container/card">
           <CardHeader>
             <CardDescription>Total Annual Payroll</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              $4,250,000
+              ${data.summary.totalAnnual.toLocaleString()}
             </CardTitle>
             <CardAction>
               <Badge
@@ -117,7 +130,10 @@ export function SalaryReportsTab() {
           <CardHeader>
             <CardDescription>Avg. Employee Salary</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              $78,500
+              $
+              {data.summary.averageSalary.toLocaleString(undefined, {
+                maximumFractionDigits: 0,
+              })}
             </CardTitle>
             <CardAction>
               <Badge
@@ -136,7 +152,7 @@ export function SalaryReportsTab() {
           <CardHeader>
             <CardDescription>YoY Growth</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              +5.2%
+              +{data.summary.yoyGrowth}%
             </CardTitle>
             <CardAction>
               <Badge
@@ -144,14 +160,14 @@ export function SalaryReportsTab() {
                 className="text-purple-600 border-purple-200 bg-purple-50"
               >
                 <TrendingUp className="size-4 mr-1" />
-                vs 2024
+                vs Last Year
               </Badge>
             </CardAction>
           </CardHeader>
         </Card>
       </div>
 
-      {/* 3. Filters Card */}
+      {/* 3. Filters Card (Visual Only for now) */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
@@ -168,7 +184,6 @@ export function SalaryReportsTab() {
               <SelectContent>
                 <SelectItem value="2025">FY 2025</SelectItem>
                 <SelectItem value="2024">FY 2024</SelectItem>
-                <SelectItem value="2023">FY 2023</SelectItem>
               </SelectContent>
             </Select>
 
@@ -178,6 +193,7 @@ export function SalaryReportsTab() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Departments</SelectItem>
+                {/* Dynamically populate this if you want later */}
                 <SelectItem value="eng">Engineering</SelectItem>
                 <SelectItem value="mkt">Marketing</SelectItem>
                 <SelectItem value="sales">Sales</SelectItem>
@@ -198,6 +214,8 @@ export function SalaryReportsTab() {
           </CardHeader>
           <CardContent className="flex-1 pb-0">
             <div className="flex items-center justify-center min-h-[300px]">
+              {/* Pass the real distribution data to your chart here */}
+              {/* <DepartmentSalaryChart data={data.distribution} /> */}
               <DepartmentSalaryChart />
             </div>
           </CardContent>
@@ -218,7 +236,7 @@ export function SalaryReportsTab() {
         </Card>
       </div>
 
-      {/* 5. Detailed Table (Mapped) */}
+      {/* 5. Detailed Table (Dynamic) */}
       <Card>
         <CardHeader>
           <CardTitle>Detailed Breakdown</CardTitle>
@@ -238,43 +256,55 @@ export function SalaryReportsTab() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {salaryDetails.map((item) => (
-                  <TableRow key={item.id} className="hover:bg-muted/50">
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-8 w-8 rounded-lg">
-                          <AvatarImage
-                            src={item.avatarUrl}
-                            alt={item.fullName}
-                          />
-                          <AvatarFallback className="rounded-lg">
-                            {getInitials(item.fullName)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex flex-col">
-                          <span>{item.fullName}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {item.id}
-                          </span>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div className="p-1 bg-secondary rounded-md">
-                          <Briefcase className="h-3 w-3 text-muted-foreground" />
-                        </div>
-                        <span>{item.department}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-mono text-base">
-                      ${item.currentSalary.toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {item.lastRaiseDate}
+                {data.details.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={4}
+                      className="text-center h-24 text-muted-foreground"
+                    >
+                      No data found.
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  data.details.map((item) => (
+                    <TableRow key={item.id} className="hover:bg-muted/50">
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-8 w-8 rounded-lg">
+                            <AvatarImage
+                              src={item.avatarUrl}
+                              alt={item.fullName}
+                            />
+                            <AvatarFallback className="rounded-lg">
+                              {getInitials(item.fullName)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex flex-col">
+                            <span>{item.fullName}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {/* Show partial ID for security/aesthetics */}#
+                              {item.id.substring(0, 6)}
+                            </span>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div className="p-1 bg-secondary rounded-md">
+                            <Briefcase className="h-3 w-3 text-muted-foreground" />
+                          </div>
+                          <span>{item.department}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-mono text-base">
+                        ${item.currentSalary.toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {item.lastRaiseDate}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>

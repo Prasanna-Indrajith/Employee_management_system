@@ -23,6 +23,7 @@ import {
 // Import your API and Types
 import { employeeAPI } from '@/services/api';
 import type { LookupData } from '@/types';
+import { toast } from 'sonner';
 
 export default function AddEmployee() {
   const navigate = useNavigate();
@@ -135,51 +136,53 @@ export default function AddEmployee() {
 
     setIsSubmitting(true);
 
-    try {
-      // 1. Generate Logic
-      const fullName = `${formData.firstName} ${formData.lastName}`;
-      const email =
-        `${formData.firstName}.${formData.lastName}@orian.com`.toLowerCase();
+    // 1. Generate logic
+    const fullName = `${formData.firstName} ${formData.lastName}`;
+    const email =
+      `${formData.firstName}.${formData.lastName}@orian.com`.toLowerCase();
 
-      // Phone Formatting
-      let formattedPhone = formData.phone;
-      if (!formattedPhone.startsWith('+94')) {
-        formattedPhone = formattedPhone.startsWith('0')
-          ? `+94${formattedPhone.substring(1)}`
-          : `+94${formattedPhone}`;
-      }
-
-      // 2. Prepare Payload (Converting IDs to Numbers)
-      const payload: any = {
-        fullName,
-        email,
-        phone: formattedPhone,
-        departmentId: Number(formData.department), // Convert String ID to Number
-        positionId: Number(formData.position), // Convert String ID to Number
-        locationId: Number(formData.location), // Convert String ID to Number
-        hireDate: formData.hireDate,
-        salary: Number(formData.salary),
-        role: formData.role as 'admin' | 'user',
-        employmentType: formData.employmentType as any,
-        bio: formData.bio,
-        skills: formData.skills
-          .split(',')
-          .map((s) => s.trim())
-          .filter(Boolean),
-      };
-
-      // 3. Send to API
-      const response = await employeeAPI.create(payload);
-
-      if (response.success) {
-        navigate('/admin/employees/all');
-      }
-    } catch (error: any) {
-      console.error('Submission Error:', error);
-      alert(error.response?.data?.message || 'Failed to create employee');
-    } finally {
-      setIsSubmitting(false);
+    // Phone Formatting
+    let formattedPhone = formData.phone;
+    if (!formattedPhone.startsWith('+94')) {
+      formattedPhone = formattedPhone.startsWith('0')
+        ? `+94${formattedPhone.substring(1)}`
+        : `+94${formattedPhone}`;
     }
+
+    // 2. Prepare Payload (Converting IDs to Numbers)
+    const payload: any = {
+      fullName,
+      email,
+      phone: formattedPhone,
+      departmentId: Number(formData.department), // Convert String ID to Number
+      positionId: Number(formData.position), // Convert String ID to Number
+      locationId: Number(formData.location), // Convert String ID to Number
+      hireDate: formData.hireDate,
+      salary: Number(formData.salary),
+      role: formData.role as 'admin' | 'user',
+      employmentType: formData.employmentType as any,
+      bio: formData.bio,
+      skills: formData.skills
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean),
+    };
+
+    toast.promise(employeeAPI.create(payload), {
+      loading: `Creating profile for ${fullName}...`,
+      success: (res) => {
+        // Small delay or immediate navigation
+        navigate('/admin/employees/all');
+        return `${formData.firstName} has been added to the system.`;
+      },
+      error: (err) => {
+        // Extracts the specific backend error message if it exists
+        return (
+          err.response?.data?.message || 'Could not create employee record.'
+        );
+      },
+      finally: () => setIsSubmitting(false),
+    });
   };
 
   if (isLoadingLookups) {

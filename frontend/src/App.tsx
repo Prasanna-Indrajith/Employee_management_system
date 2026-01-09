@@ -13,7 +13,6 @@ function App() {
 
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-      {/* <AuthProvider> */}
       <div className="App">
         <Routes>
           {/* SMART LOGIN ROUTE:
@@ -59,15 +58,14 @@ function App() {
           />
 
           {/* SMART ROOT ROUTE:
-               Replaces the old <Navigate to="/login" />
-            */}
+            Replaces the old <Navigate to="/login" />
+          */}
           <Route path="/" element={<RootRedirect />} />
 
           {/* Catch All */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<RootRedirect />} />
         </Routes>
       </div>
-      {/* </AuthProvider> */}
     </ThemeProvider>
   );
 }

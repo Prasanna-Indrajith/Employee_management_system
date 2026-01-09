@@ -29,21 +29,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import DeleteConfirmationCard from '../../ui/delete-confirmation'; // Verify this path
 
 // Import API and Shared Types
 import { employeeAPI } from '@/services/api';
 import type { Employee } from '@/types';
+import { toast } from 'sonner';
 
 export default function EmployeeProfile() {
   const navigate = useNavigate();
@@ -90,18 +81,27 @@ export default function EmployeeProfile() {
     if (!employee) return;
 
     setIsDeleting(true);
-    try {
-      const response = await employeeAPI.delete(employee.id);
-      if (response.success) {
-        navigate(`/admin/employees/all`);
-      }
-    } catch (error) {
-      console.error('Failed to delete', error);
-      // Optional: Show error toast here
-    } finally {
-      setIsDeleting(false);
-      setShowDeleteCard(false);
-    }
+
+    // We return the promise so toast.promise can track it
+    toast.promise(employeeAPI.delete(employee.id), {
+      loading: `Removing ${employee.fullName} from the system...`,
+      success: (response) => {
+        // Small check if your API returns success: false instead of throwing
+        if (response.success) {
+          navigate(`/admin/employees/all`);
+          return 'Employee deleted successfully.';
+        }
+        throw new Error('Delete failed');
+      },
+      error: (err) => {
+        console.error('Delete error:', err);
+        return 'Could not delete employee. They may have linked records (like leaves).';
+      },
+      finally: () => {
+        setIsDeleting(false);
+        setShowDeleteCard(false);
+      },
+    });
   };
 
   const handleCancelDelete = () => {

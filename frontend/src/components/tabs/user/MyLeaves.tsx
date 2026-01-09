@@ -23,6 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { IconCalendarPlus, IconHistory } from '@tabler/icons-react';
 // Import the API we just created
 import { leaveAPI } from '@/services/api';
+import { toast } from 'sonner';
 
 export default function MyLeaves() {
   const [loading, setLoading] = useState(true);
@@ -58,25 +59,19 @@ export default function MyLeaves() {
   // 2. Handle Submit
   const handleRequest = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
 
-    try {
-      const response = await leaveAPI.requestLeave(formData);
-
-      if (response.success) {
-        alert('Leave requested successfully!');
-        // Clear form
+    // This one function handles Loading, Success, AND Error states
+    toast.promise(leaveAPI.requestLeave(formData), {
+      loading: 'Submitting your request...',
+      success: (response) => {
         setFormData({ leaveType: '', startDate: '', endDate: '', reason: '' });
-        // Refresh list
         fetchLeaves();
-      } else {
-        alert(response.message || 'Failed to request leave');
-      }
-    } catch (error) {
-      alert('Error submitting request');
-    } finally {
-      setIsSubmitting(false);
-    }
+        return 'Request submitted! Your manager has been notified.';
+      },
+      error: (err) => {
+        return 'Could not submit request. Please check your connection.';
+      },
+    });
   };
 
   return (

@@ -11,43 +11,70 @@ import {
   Building,
   Edit,
   ShieldCheck,
+  Loader2,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
-
-// Mock Data for the currently logged-in user
-const currentUser = {
-  id: 'emp005',
-  name: 'Kasun Perera',
-  email: 'kasun.perera@orian.com',
-  phone: '+94 77 123 4567',
-  department: 'Engineering',
-  position: 'Senior Developer',
-  joinDate: '2023-01-15',
-  status: 'Active',
-  location: 'Colombo, Sri Lanka',
-  salary: 'Rs. 120,000',
-  employeeType: 'Full-time',
-  bio: 'Frontend developer with a passion for creating beautiful and intuitive user interfaces using modern web technologies.',
-  skills: ['React', 'Vue.js', 'CSS', 'JavaScript', 'UI/UX Design', 'Figma'],
-};
+import { employeeAPI } from '@/services/api'; // Import API
+import type { Employee } from '@/types'; // Import Type
 
 export default function UserProfile() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<Employee | null>(null);
 
-  // Simulate loading data
+  // 1. Fetch Real Data
   useEffect(() => {
-    setTimeout(() => setLoading(false), 500);
+    const fetchProfile = async () => {
+      try {
+        const response = await employeeAPI.getMyProfile();
+        if (response.success && response.data) {
+          setProfile(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to load profile', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
   }, []);
+
+  // Helper: Format Currency (e.g. 120000 -> Rs. 120,000)
+  const formatCurrency = (amount: number) => {
+    return `Rs. ${amount.toLocaleString('en-US')}`;
+  };
+
+  // Helper: Format Date (e.g. 2023-01-15 -> Jan 15, 2023)
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return 'N/A';
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  };
 
   if (loading) {
     return (
       <div className="w-full h-96 flex items-center justify-center">
-        <div className="text-muted-foreground">Loading your profile...</div>
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <span className="ml-2 text-muted-foreground">
+          Loading your profile...
+        </span>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="w-full h-96 flex flex-col items-center justify-center text-muted-foreground">
+        <User className="h-12 w-12 mb-2 opacity-20" />
+        <p>Profile not found.</p>
       </div>
     );
   }
@@ -63,13 +90,13 @@ export default function UserProfile() {
           </div>
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-foreground">
-              {currentUser.name}
+              {profile.fullName}
             </h1>
             <div className="flex items-center gap-2 text-muted-foreground">
               <Briefcase className="h-4 w-4" />
-              <span>{currentUser.position}</span>
+              <span>{profile.position}</span>
               <span>•</span>
-              <span>{currentUser.department}</span>
+              <span>{profile.department}</span>
             </div>
           </div>
         </div>
@@ -103,7 +130,7 @@ export default function UserProfile() {
                     <div>
                       <p className="text-sm font-medium">Email</p>
                       <p className="text-sm text-muted-foreground">
-                        {currentUser.email}
+                        {profile.email}
                       </p>
                     </div>
                   </div>
@@ -115,7 +142,7 @@ export default function UserProfile() {
                     <div>
                       <p className="text-sm font-medium">Phone</p>
                       <p className="text-sm text-muted-foreground">
-                        {currentUser.phone}
+                        {profile.phone}
                       </p>
                     </div>
                   </div>
@@ -127,7 +154,7 @@ export default function UserProfile() {
                     <div>
                       <p className="text-sm font-medium">Location</p>
                       <p className="text-sm text-muted-foreground">
-                        {currentUser.location}
+                        {profile.location}
                       </p>
                     </div>
                   </div>
@@ -142,7 +169,7 @@ export default function UserProfile() {
                     <div>
                       <p className="text-sm font-medium">Department</p>
                       <p className="text-sm text-muted-foreground">
-                        {currentUser.department}
+                        {profile.department}
                       </p>
                     </div>
                   </div>
@@ -154,7 +181,7 @@ export default function UserProfile() {
                     <div>
                       <p className="text-sm font-medium">Join Date</p>
                       <p className="text-sm text-muted-foreground">
-                        {currentUser.joinDate}
+                        {formatDate(profile.hireDate)}
                       </p>
                     </div>
                   </div>
@@ -162,14 +189,12 @@ export default function UserProfile() {
               </div>
 
               {/* Bio Section */}
-              {currentUser.bio && (
-                <div className="pt-4 border-t">
-                  <h4 className="text-sm font-medium mb-2">About Me</h4>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {currentUser.bio}
-                  </p>
-                </div>
-              )}
+              <div className="pt-4 border-t">
+                <h4 className="text-sm font-medium mb-2">About Me</h4>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {profile.bio || 'No bio information provided.'}
+                </p>
+              </div>
             </CardContent>
           </Card>
 
@@ -180,11 +205,21 @@ export default function UserProfile() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
-                {currentUser.skills.map((skill, index) => (
-                  <Badge key={index} variant="secondary" className="px-3 py-1">
-                    {skill}
-                  </Badge>
-                ))}
+                {profile.skills && profile.skills.length > 0 ? (
+                  profile.skills.map((skill, index) => (
+                    <Badge
+                      key={index}
+                      variant="secondary"
+                      className="px-3 py-1"
+                    >
+                      {skill}
+                    </Badge>
+                  ))
+                ) : (
+                  <span className="text-sm text-muted-foreground">
+                    No skills listed.
+                  </span>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -203,7 +238,10 @@ export default function UserProfile() {
                     Employee ID
                   </span>
                   <span className="text-sm font-medium font-mono">
-                    {currentUser.id}
+                    {/* Show a shortened ID if it's a long UUID */}
+                    {profile.id.length > 8
+                      ? `...${profile.id.slice(-6)}`
+                      : profile.id}
                   </span>
                 </div>
 
@@ -211,16 +249,20 @@ export default function UserProfile() {
                   <span className="text-sm text-muted-foreground">Status</span>
                   <Badge
                     variant="outline"
-                    className="text-green-600 border-green-200 bg-green-50"
+                    className={
+                      profile.status === 'active'
+                        ? 'text-green-600 border-green-200 bg-green-50'
+                        : 'text-red-600 border-red-200 bg-red-50'
+                    }
                   >
-                    {currentUser.status}
+                    {profile.status ? profile.status.toUpperCase() : 'UNKNOWN'}
                   </Badge>
                 </div>
 
                 <div className="flex justify-between border-b pb-2">
                   <span className="text-sm text-muted-foreground">Type</span>
                   <span className="text-sm font-medium">
-                    {currentUser.employeeType}
+                    {profile.employmentType}
                   </span>
                 </div>
 
@@ -230,7 +272,7 @@ export default function UserProfile() {
                   </span>
                   <div className="flex items-center gap-1 text-sm font-semibold">
                     <ShieldCheck className="h-3 w-3 text-muted-foreground" />
-                    <span>{currentUser.salary}</span>
+                    <span>{formatCurrency(profile.salary)}</span>
                   </div>
                 </div>
               </div>

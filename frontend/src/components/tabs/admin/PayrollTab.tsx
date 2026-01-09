@@ -1,3 +1,6 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import {
   DollarSign,
   Users,
@@ -7,6 +10,7 @@ import {
   Calendar,
   Download,
   MoreHorizontal,
+  Loader2,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -33,48 +37,77 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import type { PayrollRun } from '@/types'; // Import your type
-
-// Mock Data matching the PayrollRun Interface
-const payrollRuns: PayrollRun[] = [
-  {
-    id: 'run_001',
-    runDate: 'Oct 1, 2025',
-    payPeriodStart: 'Sep 1, 2025',
-    payPeriodEnd: 'Sep 30, 2025',
-    totalDisbursed: 148120.5,
-    status: 'Processed',
-    employeeCount: 1250,
-  },
-  {
-    id: 'run_002',
-    runDate: 'Sep 1, 2025',
-    payPeriodStart: 'Aug 1, 2025',
-    payPeriodEnd: 'Aug 31, 2025',
-    totalDisbursed: 145900.0,
-    status: 'Processed',
-    employeeCount: 1245,
-  },
-  {
-    id: 'run_003',
-    runDate: 'Aug 1, 2025',
-    payPeriodStart: 'Jul 1, 2025',
-    payPeriodEnd: 'Jul 31, 2025',
-    totalDisbursed: 142500.0,
-    status: 'Processed',
-    employeeCount: 1240,
-  },
-];
-
-// Current Cycle Data (Mocked for active card)
-const currentCycle = {
-  estimatedCost: 150450.0,
-  payableEmployees: 1250,
-  status: 'Pending',
-  period: 'Oct 01 - Oct 31',
-};
+import { payrollAPI } from '@/services/api'; // Import API
+import type { PayrollRun } from '@/types';
 
 export function PayrollTab() {
+  const [runs, setRuns] = useState<PayrollRun[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // 1. Fetch Data
+  useEffect(() => {
+    const fetchPayroll = async () => {
+      try {
+        const response = await payrollAPI.getAllRuns();
+        if (response.success && response.data) {
+          setRuns(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch payroll runs', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPayroll();
+  }, []);
+
+  // 2. Derive "Current Cycle" Stats from the latest run
+  // (In a real app, you might have a specific endpoint for 'current_draft')
+  const latestRun = runs.length > 0 ? runs[0] : null;
+
+  const currentStats = {
+    estimatedCost: latestRun ? latestRun.totalDisbursed : 0,
+    payableEmployees: latestRun ? latestRun.employeeCount : 0,
+    status: latestRun ? latestRun.status : 'No Data',
+    // Example: "Oct 1 - Oct 31" derived from dates
+    period: latestRun
+      ? `${new Date(latestRun.payPeriodStart).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+        })} - ${new Date(latestRun.payPeriodEnd).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+        })}`
+      : '-',
+  };
+
+  // Helper: Format Date
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  // Helper: Format Currency
+  const formatCurrency = (amount: number) => {
+    return amount.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="flex h-96 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* 1. Header with Primary Action */}
@@ -97,14 +130,14 @@ export function PayrollTab() {
         </div>
       </div>
 
-      {/* 2. Current Cycle Stats */}
+      {/* 2. Current Cycle Stats (Dynamic) */}
       <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 md:grid-cols-3 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs">
         {/* Total Cost Card */}
         <Card className="@container/card">
           <CardHeader>
-            <CardDescription>Estimated Cost</CardDescription>
+            <CardDescription>Latest Run Cost</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              ${currentCycle.estimatedCost.toLocaleString()}
+              ${formatCurrency(currentStats.estimatedCost)}
             </CardTitle>
             <CardAction>
               <Badge
@@ -123,7 +156,7 @@ export function PayrollTab() {
           <CardHeader>
             <CardDescription>Payable Employees</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              {currentCycle.payableEmployees.toLocaleString()}
+              {currentStats.payableEmployees.toLocaleString()}
             </CardTitle>
             <CardAction>
               <Badge variant="outline">
@@ -137,9 +170,17 @@ export function PayrollTab() {
         {/* Status Card */}
         <Card className="@container/card">
           <CardHeader>
-            <CardDescription>Cycle Status</CardDescription>
-            <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl text-orange-600">
-              {currentCycle.status}
+            <CardDescription>Latest Status</CardDescription>
+            <CardTitle
+              className={`text-2xl font-semibold tabular-nums @[250px]/card:text-3xl ${
+                currentStats.status === 'Completed'
+                  ? 'text-green-600'
+                  : currentStats.status === 'Processing'
+                  ? 'text-blue-600'
+                  : 'text-orange-600'
+              }`}
+            >
+              {currentStats.status}
             </CardTitle>
             <CardAction>
               <Badge
@@ -147,14 +188,14 @@ export function PayrollTab() {
                 className="text-orange-600 border-orange-200 bg-orange-50"
               >
                 <Activity className="size-4 mr-1" />
-                {currentCycle.period}
+                {currentStats.period}
               </Badge>
             </CardAction>
           </CardHeader>
         </Card>
       </div>
 
-      {/* 3. Payroll History Table (Mapped) */}
+      {/* 3. Payroll History Table (Dynamic) */}
       <Card>
         <CardHeader>
           <CardTitle>Payroll History</CardTitle>
@@ -175,55 +216,66 @@ export function PayrollTab() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {payrollRuns.map((run) => (
-                  <TableRow key={run.id} className="hover:bg-muted/50">
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        {run.runDate}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {run.payPeriodStart} - {run.payPeriodEnd}
-                    </TableCell>
-                    <TableCell className="font-mono">
-                      $
-                      {run.totalDisbursed.toLocaleString('en-US', {
-                        minimumFractionDigits: 2,
-                      })}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={
-                          run.status === 'Processed'
-                            ? 'text-green-600 border-green-200 bg-green-50'
-                            : 'text-red-600 border-red-200 bg-red-50'
-                        }
-                      >
-                        {run.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
-                            <FileText className="mr-2 h-4 w-4" /> View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Download className="mr-2 h-4 w-4" /> Download
-                            Report
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                {runs.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={5}
+                      className="h-24 text-center text-muted-foreground"
+                    >
+                      No payroll runs found.
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  runs.map((run) => (
+                    <TableRow key={run.id} className="hover:bg-muted/50">
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          {formatDate(run.runDate)}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {formatDate(run.payPeriodStart)} -{' '}
+                        {formatDate(run.payPeriodEnd)}
+                      </TableCell>
+                      <TableCell className="font-mono">
+                        ${formatCurrency(run.totalDisbursed)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={
+                            run.status === 'Completed'
+                              ? 'text-green-600 border-green-200 bg-green-50'
+                              : run.status === 'Processing'
+                              ? 'text-blue-600 border-blue-200 bg-blue-50'
+                              : 'text-orange-600 border-orange-200 bg-orange-50'
+                          }
+                        >
+                          {run.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem>
+                              <FileText className="mr-2 h-4 w-4" /> View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Download className="mr-2 h-4 w-4" /> Download
+                              Report
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>
