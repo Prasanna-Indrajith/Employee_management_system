@@ -1,5 +1,14 @@
 info*.md
-backend/*
+
+
+backend/package-lock.json
+backend/dist
+backend/.DS_Store
+backend/.ts__
+backend//src/generated/prisma
+backend/*.md
+
+/src/generated/prisma
 
 # Node modules (any depth)
 **/node_modules/
