@@ -48,13 +48,13 @@ export default function UserPage() {
                   <Route path="profile/edit" element={<EditUserProfile />} />
 
                   {/* Default redirect */}
-                  <Route
+                  {/* <Route
                     path=""
-                    element={<Navigate to="dashboard" replace />}
-                  />
+                    element={<Navigate to="/dashboard" replace />}
+                  /> */}
                   <Route
                     path="*"
-                    element={<Navigate to="dashboard" replace />}
+                    element={<Navigate to="/dashboard" replace />}
                   />
                 </Routes>
               </div>

@@ -20,26 +20,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { employeeAPI } from '@/services/api'; // Import API
+import { employeeAPI } from '@/services/api';
 
 export default function TimeSheet() {
-  // 1. State for Data
   const [timesheets, setTimesheets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
 
-  // 2. State for Filters
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split('T')[0]
-  ); // Default to today
+  );
   const [selectedDepartment, setSelectedDepartment] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // 3. Fetch Data from API
+  // Fetch Data from API
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // Fetch data for the specific selected Date
         const response = await employeeAPI.getTimesheets(selectedDate);
         if (response.success) {
           setTimesheets(response.data);
@@ -52,9 +50,41 @@ export default function TimeSheet() {
     };
 
     fetchData();
-  }, [selectedDate]); // Re-run when date changes
+  }, [selectedDate]);
 
-  // 4. Client-side Filtering (Search & Department)
+  // Handle PDF Download
+  const handleDownloadPDF = async () => {
+    const today = new Date().toISOString().split('T')[0];
+    const currentHour = new Date().getHours();
+
+    // Check if trying to download today's report before 5 PM
+    if (selectedDate === today && currentHour < 17) {
+      alert("Today's timesheet will be available after 5:00 PM");
+      return;
+    }
+
+    setDownloading(true);
+    try {
+      const blob = await employeeAPI.downloadTimesheet(selectedDate);
+
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `timesheet_${selectedDate}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error: any) {
+      alert(error.message || 'Failed to download timesheet PDF');
+      console.error(error);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  // Client-side Filtering
   const filteredData = timesheets.filter((entry) => {
     const matchesSearch =
       entry.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -65,14 +95,6 @@ export default function TimeSheet() {
 
     return matchesSearch && matchesDepartment;
   });
-
-  // Calculate totals
-  const totalHours = filteredData.reduce((sum, entry) => {
-    // Simple calculation: You might need more complex math if hours are strings
-    // Assuming backend returns hours, or we calculate diff.
-    // For now, let's just count entries or use a safe fallback.
-    return sum + 8; // Placeholder: 8 hours per person
-  }, 0);
 
   return (
     <div className="space-y-6">
@@ -85,8 +107,16 @@ export default function TimeSheet() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">
-            <Download className="mr-2 h-4 w-4" />
+          <Button
+            variant="outline"
+            onClick={handleDownloadPDF}
+            disabled={downloading || loading}
+          >
+            {downloading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="mr-2 h-4 w-4" />
+            )}
             Export Report
           </Button>
         </div>
@@ -95,34 +125,34 @@ export default function TimeSheet() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
-          <CardHeader>
-            <CardDescription>Total Present</CardDescription>
-            <CardTitle className="text-2xl font-semibold">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardDescription>Total Present</CardDescription>
+              <Badge variant="outline">
+                <Users className="h-3 w-3 mr-1" />
+                <span className="text-xs">Staff</span>
+              </Badge>
+            </div>
+            <CardTitle className="text-2xl font-semibold tabular-nums">
               {loading ? '-' : filteredData.length}
             </CardTitle>
-            <CardAction>
-              <Badge variant="outline">
-                {' '}
-                <Users className="size-4 mr-1" /> Staff
-              </Badge>
-            </CardAction>
           </CardHeader>
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardDescription>Late Arrivals</CardDescription>
-            <CardTitle className="text-2xl font-semibold text-orange-600">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardDescription>Late Arrivals</CardDescription>
+              <Badge variant="outline">
+                <Timer className="h-3 w-3 mr-1" />
+                <span className="text-xs">Alert</span>
+              </Badge>
+            </div>
+            <CardTitle className="text-2xl font-semibold tabular-nums">
               {loading
                 ? '-'
                 : filteredData.filter((x) => x.status === 'Late').length}
             </CardTitle>
-            <CardAction>
-              <Badge variant="outline">
-                {' '}
-                <Timer className="size-4 mr-1" /> Alert
-              </Badge>
-            </CardAction>
           </CardHeader>
         </Card>
       </div>
@@ -148,7 +178,7 @@ export default function TimeSheet() {
               />
             </div>
 
-            {/* Department Dropdown (Hardcoded for now, or fetch from Lookups API) */}
+            {/* Department Dropdown */}
             <Select
               value={selectedDepartment}
               onValueChange={setSelectedDepartment}

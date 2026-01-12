@@ -6,12 +6,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { authAPI } from '@/services/api'; // Import your API service
 import { Loader2 } from 'lucide-react'; // Import a spinner icon
+import { useAuth } from '@/contexts/AuthContext';
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<'form'>) {
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   // 1. State for form data and UI status
   const [formData, setFormData] = useState({
@@ -38,24 +40,22 @@ export function LoginForm({
     setError(null);
 
     try {
-      // Call the backend
-      const response = await authAPI.login({
+      // 1. Wait for login to complete and get the user
+      const user = await login({
         email: formData.email,
         password: formData.password,
       });
 
-      if (response.success) {
-        // Redirect based on role
-        const role = response.data.user.role;
-        if (role === 'admin') {
-          navigate('/admin/dashboard');
+      // 2. Manual Redirect based on Role (The Fix)
+      if (user) {
+        if (user.role === 'admin') {
+          navigate('/admin/dashboard', { replace: true });
         } else {
-          navigate('/user/dashboard');
+          navigate('/user/dashboard', { replace: true });
         }
       }
     } catch (err: any) {
       console.error('Login failed', err);
-      // Show error message from backend or a default one
       setError(err.response?.data?.message || 'Invalid email or password');
     } finally {
       setIsLoading(false);

@@ -9,7 +9,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import RootRedirect from './components/RootRedirect';
 
 function App() {
-  const { isAuthenticated, user } = useAuth(); // Get auth state for Login route too
+  const { isAuthenticated, user, isLoading } = useAuth(); // Get auth state for Login route too
+
+  if (isLoading) {
+    return <RootRedirect />;
+  }
 
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
@@ -57,9 +61,7 @@ function App() {
             }
           />
 
-          {/* SMART ROOT ROUTE:
-            Replaces the old <Navigate to="/login" />
-          */}
+          {/* SMART ROOT ROUTE: */}
           <Route path="/" element={<RootRedirect />} />
 
           {/* Catch All */}

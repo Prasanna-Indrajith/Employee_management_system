@@ -68,11 +68,11 @@ export default function Page() {
                   {/* Default redirect */}
                   {/* <Route
                     path=""
-                    element={<Navigate to="dashboard" replace />}
+                    element={<Navigate to="/dashboard" replace />}
                   /> */}
                   <Route
                     path="*"
-                    element={<Navigate to="dashboard" replace />}
+                    element={<Navigate to="/dashboard" replace />}
                   />
                 </Routes>
               </div>

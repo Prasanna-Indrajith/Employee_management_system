@@ -31,17 +31,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { leaveAPI } from '@/services/api'; // Import your API
+import { leaveAPI } from '@/services/api';
 
 export default function TimeOffRequests() {
-  const [requests, setRequests] = useState<any[]>([]); // Dynamic State
+  const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedDepartment, setSelectedDepartment] = useState('all');
   const [processingId, setProcessingId] = useState<string | null>(null);
 
-  // 1. Fetch Data on Load
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -58,7 +57,6 @@ export default function TimeOffRequests() {
     fetchData();
   }, []);
 
-  // 2. Handle Approve/Reject
   const handleStatusChange = async (
     requestId: string,
     newStatus: 'Approved' | 'Rejected'
@@ -68,7 +66,6 @@ export default function TimeOffRequests() {
       const response = await leaveAPI.updateStatus(requestId, newStatus);
 
       if (response.success) {
-        // Optimistically update the UI
         setRequests((prev) =>
           prev.map((req) =>
             req.id === requestId ? { ...req, status: newStatus } : req
@@ -82,15 +79,12 @@ export default function TimeOffRequests() {
     }
   };
 
-  // 3. Helpers
   const formatDate = (dateString: string) => {
     if (!dateString) return '-';
-    // Handle array or string (your backend might return array of dates)
     const d = Array.isArray(dateString) ? dateString[0] : dateString;
     return new Date(d).toLocaleDateString();
   };
 
-  // Filter Logic
   const filteredRequests = requests.filter((request) => {
     const matchesSearch =
       (request.employeeName || '')
@@ -109,7 +103,6 @@ export default function TimeOffRequests() {
     return matchesSearch && matchesStatus && matchesDepartment;
   });
 
-  // Calculate stats
   const pendingCount = requests.filter((r) => r.status === 'Pending').length;
   const approvedCount = requests.filter((r) => r.status === 'Approved').length;
   const rejectedCount = requests.filter((r) => r.status === 'Rejected').length;
@@ -129,7 +122,7 @@ export default function TimeOffRequests() {
         return (
           <Badge
             variant="outline"
-            className="text-orange-600 border-orange-200 bg-orange-50"
+            className="text-slate-600 border-slate-200 bg-slate-50"
           >
             Pending
           </Badge>
@@ -161,73 +154,65 @@ export default function TimeOffRequests() {
       </div>
 
       {/* Stats Cards */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Total */}
-        <Card className="bg-gradient-to-t from-primary/5 to-card">
-          <CardHeader>
-            <CardDescription>Total Requests</CardDescription>
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardDescription>Total Requests</CardDescription>
+              <Badge variant="outline">
+                <FileText className="h-3 w-3 mr-1" />
+                <span className="text-xs">All</span>
+              </Badge>
+            </div>
             <CardTitle className="text-2xl font-semibold tabular-nums">
               {requests.length}
             </CardTitle>
-            <div className="flex justify-end mt-[-20px]">
-              <Badge variant="outline">
-                <FileText className="size-4 mr-1" /> All
-              </Badge>
-            </div>
           </CardHeader>
         </Card>
 
-        {/* Pending */}
-        <Card className="bg-gradient-to-t from-orange-500/5 to-card">
-          <CardHeader>
-            <CardDescription>Pending Action</CardDescription>
-            <CardTitle className="text-2xl font-semibold tabular-nums text-orange-600">
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardDescription>Pending Action</CardDescription>
+              <Badge variant="outline">
+                <Clock className="h-3 w-3 mr-1" />
+                <span className="text-xs">New</span>
+              </Badge>
+            </div>
+            <CardTitle className="text-2xl font-semibold tabular-nums">
               {pendingCount}
             </CardTitle>
-            <div className="flex justify-end mt-[-20px]">
-              <Badge
-                variant="outline"
-                className="text-orange-600 border-orange-200 bg-orange-50"
-              >
-                <AlertCircle className="size-4 mr-1" /> New
-              </Badge>
-            </div>
           </CardHeader>
         </Card>
 
-        {/* Approved */}
-        <Card className="bg-gradient-to-t from-green-500/5 to-card">
-          <CardHeader>
-            <CardDescription>Approved</CardDescription>
-            <CardTitle className="text-2xl font-semibold tabular-nums text-green-600">
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardDescription>Approved</CardDescription>
+              <Badge variant="outline">
+                <CheckCircle2 className="h-3 w-3 mr-1" />
+                <span className="text-xs">Done</span>
+              </Badge>
+            </div>
+            <CardTitle className="text-2xl font-semibold tabular-nums">
               {approvedCount}
             </CardTitle>
-            <div className="flex justify-end mt-[-20px]">
-              <Badge
-                variant="outline"
-                className="text-green-600 border-green-200 bg-green-50"
-              >
-                <CheckCircle2 className="size-4 mr-1" /> Done
-              </Badge>
-            </div>
           </CardHeader>
         </Card>
 
-        {/* Rejected */}
-        <Card className="bg-gradient-to-t from-red-500/5 to-card">
-          <CardHeader>
-            <CardDescription>Rejected</CardDescription>
-            <CardTitle className="text-2xl font-semibold tabular-nums text-red-600">
-              {rejectedCount}
-            </CardTitle>
-            <div className="flex justify-end mt-[-20px]">
-              <Badge
-                variant="outline"
-                className="text-red-600 border-red-200 bg-red-50"
-              >
-                <XCircle className="size-4 mr-1" /> Void
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardDescription>Rejected</CardDescription>
+              <Badge variant="outline">
+                <XCircle className="h-3 w-3 mr-1" />
+                <span className="text-xs">Void</span>
               </Badge>
             </div>
+            <CardTitle className="text-2xl font-semibold tabular-nums">
+              {rejectedCount}
+            </CardTitle>
           </CardHeader>
         </Card>
       </div>
@@ -270,7 +255,6 @@ export default function TimeOffRequests() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Departments</SelectItem>
-                {/* Dynamically populate this if you have a department API, otherwise hardcode common ones */}
                 <SelectItem value="Engineering">Engineering</SelectItem>
                 <SelectItem value="HR">HR</SelectItem>
                 <SelectItem value="Sales">Sales</SelectItem>
@@ -282,7 +266,7 @@ export default function TimeOffRequests() {
       </Card>
 
       {/* Requests List */}
-      <div className="grid grid-cols-1 gap-4">
+      <div className="grid grid-cols-1 gap-3">
         {loading ? (
           <Card>
             <CardContent className="py-12 text-center text-muted-foreground">
@@ -293,11 +277,11 @@ export default function TimeOffRequests() {
           filteredRequests.map((request) => (
             <Card
               key={request.id}
-              className="hover:shadow-sm transition-all border-l-4"
+              className="hover:shadow-sm transition-all border-l-2"
               style={{
                 borderLeftColor:
                   request.status === 'Pending'
-                    ? '#f97316'
+                    ? '#94a3b8'
                     : request.status === 'Approved'
                     ? '#16a34a'
                     : request.status === 'Rejected'
@@ -305,55 +289,50 @@ export default function TimeOffRequests() {
                     : 'transparent',
               }}
             >
-              <CardContent className="pt-6">
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+              <CardContent className="pt-4 pb-4">
+                <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
                   {/* Employee Info Section */}
-                  <div className="flex items-start gap-4 flex-1">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
-                      <User className="h-6 w-6" />
+                  <div className="flex items-start gap-3 flex-1">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted">
+                      <User className="h-4 w-4 text-muted-foreground" />
                     </div>
 
                     <div className="space-y-1 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-semibold text-lg leading-none">
+                        <h3 className="font-semibold text-base leading-none">
                           {request.employeeName}
                         </h3>
-                        {/* We use id suffix as a visual ID if no real employee ID is available */}
-                        <span className="text-sm text-muted-foreground font-mono">
+                        <span className="text-xs text-muted-foreground font-mono">
                           #{request.employeeId?.substring(0, 6)}
                         </span>
                         {getStatusBadge(request.status)}
                       </div>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-xs text-muted-foreground">
                         {request.department || 'General Staff'}
                       </p>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4 text-sm">
-                        <div className="flex flex-col">
-                          <span className="text-muted-foreground text-xs">
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-3 text-xs">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-muted-foreground">
                             Leave Type
                           </span>
-                          <span className="font-medium flex items-center gap-1.5">
-                            <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="font-medium">
                             {request.leaveType}
                           </span>
                         </div>
-                        <div className="flex flex-col">
-                          <span className="text-muted-foreground text-xs">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-muted-foreground">
                             Duration
                           </span>
-                          <span className="font-medium flex items-center gap-1.5">
-                            <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="font-medium">
                             {request.duration}
                           </span>
                         </div>
-                        <div className="flex flex-col">
-                          <span className="text-muted-foreground text-xs">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-muted-foreground">
                             Dates
                           </span>
-                          <span className="font-medium flex items-center gap-1.5">
-                            <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                            {/* Logic to show Start - End based on your date array */}
+                          <span className="font-medium">
                             {request.dates && request.dates.length > 0
                               ? `${formatDate(request.dates[0])} - ${formatDate(
                                   request.dates[request.dates.length - 1]
@@ -361,9 +340,9 @@ export default function TimeOffRequests() {
                               : 'N/A'}
                           </span>
                         </div>
-                        <div className="flex flex-col">
-                          <span className="text-muted-foreground text-xs">
-                            Requested On
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-muted-foreground">
+                            Requested
                           </span>
                           <span className="font-medium">
                             {formatDate(request.requestedOn)}
@@ -371,19 +350,16 @@ export default function TimeOffRequests() {
                         </div>
                       </div>
 
-                      <div className="mt-4 p-3 bg-muted/50 rounded-md border border-muted">
-                        <p className="text-sm">
-                          <span className="font-medium">Reason:</span>{' '}
-                          <span className="text-muted-foreground">
-                            {request.reason}
-                          </span>
+                      <div className="mt-3 pt-2 border-t">
+                        <p className="text-xs text-muted-foreground">
+                          {request.reason}
                         </p>
                       </div>
                     </div>
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="lg:min-w-[140px] flex justify-end">
+                  <div className="lg:min-w-[120px] flex justify-end">
                     {request.status === 'Pending' ? (
                       <div className="flex gap-2 w-full lg:flex-col">
                         <Button
@@ -391,14 +367,14 @@ export default function TimeOffRequests() {
                             handleStatusChange(request.id, 'Approved')
                           }
                           disabled={processingId === request.id}
-                          className="flex-1 lg:flex-none bg-green-600 hover:bg-green-700 text-white shadow-sm"
+                          className="flex-1 lg:flex-none"
                           size="sm"
                         >
                           {processingId === request.id ? (
-                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                            <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent" />
                           ) : (
                             <>
-                              <Check className="mr-2 h-4 w-4" /> Approve
+                              <Check className="mr-1.5 h-3.5 w-3.5" /> Approve
                             </>
                           )}
                         </Button>
@@ -408,20 +384,20 @@ export default function TimeOffRequests() {
                           }
                           disabled={processingId === request.id}
                           variant="outline"
-                          className="flex-1 lg:flex-none text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                          className="flex-1 lg:flex-none"
                           size="sm"
                         >
                           {processingId === request.id ? (
-                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent" />
+                            <div className="animate-spin rounded-full h-3 w-3 border-2 border-current border-t-transparent" />
                           ) : (
                             <>
-                              <X className="mr-2 h-4 w-4" /> Reject
+                              <X className="mr-1.5 h-3.5 w-3.5" /> Reject
                             </>
                           )}
                         </Button>
                       </div>
                     ) : (
-                      <div className="flex flex-col items-end gap-1 text-sm text-muted-foreground">
+                      <div className="flex flex-col items-end gap-1 text-xs text-muted-foreground">
                         <span className="italic">Action taken</span>
                       </div>
                     )}

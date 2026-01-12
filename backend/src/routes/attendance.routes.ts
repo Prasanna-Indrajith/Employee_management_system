@@ -14,4 +14,11 @@ router.get("/me", authenticateToken, attendanceController.getMyAttendance);
 // Note: You should probably add an 'isAdmin' middleware check here too
 router.get("/", authenticateToken, attendanceController.getAllByDate);
 
+// Download timesheet PDF
+router.get(
+  "/timesheets/download/:date",
+  authenticateToken,
+  attendanceController.downloadTimesheet.bind(attendanceController)
+);
+
 export default router;

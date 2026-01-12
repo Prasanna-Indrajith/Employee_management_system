@@ -44,6 +44,27 @@ export const attendanceRepository = {
       },
     }));
   },
+
+  getTimesheetsByDate: async (date: string): Promise<any[]> => {
+    const sql = `
+      SELECT 
+        a.id,
+        a.employee_id as "employeeId",
+        a.full_name as "employeeName",
+        e.department,
+        TO_CHAR(a.clock_in, 'HH24:MI') as "clockIn",
+        TO_CHAR(a.clock_out, 'HH24:MI') as "clockOut",
+        a.status,
+        a.date
+      FROM timesheets a
+      JOIN employees e ON a.employee_id = e.id
+      WHERE a.date = $1
+      ORDER BY a.clock_in ASC
+    `;
+
+    const result = await pool.query(sql, [date]);
+    return result.rows;
+  },
 };
 
 // --- Helper to map DB columns (snake_case) to TS Object (camelCase) ---

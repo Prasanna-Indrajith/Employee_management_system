@@ -22,6 +22,14 @@ const api = axios.create({
   timeout: 10000,
 });
 
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token'); // or however you store your auth token
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${token}`,
+  };
+};
+
 // 1. Request Interceptor: Attach Token
 api.interceptors.request.use(
   (config) => {
@@ -54,12 +62,22 @@ export const authAPI = {
   login: async (
     credentials: LoginCredentials
   ): Promise<ApiResponse<{ user: User; token: string }>> => {
-    const response = await api.post('/auth/login', credentials);
-    if (response.data.success) {
-      localStorage.setItem('token', response.data.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.data.user));
+    try {
+      console.log('🔌 API: Sending POST /auth/login...');
+      const response = await api.post('/auth/login', credentials);
+
+      // 1. Log the EXACT data structure (Check your console for this!)
+      console.log('🔌 API: Success! Status:', response.status);
+      console.log('🔌 API: Response Body (data):', response.data);
+
+      // 2. Return the inner data directly
+      // If your backend sends { success: true, data: { user, token } }
+      // Then response.data is that object.
+      return response.data;
+    } catch (error: any) {
+      console.error('🔌 API: Request Failed!', error.response || error.message);
+      throw error; // Pass error to AuthContext
     }
-    return response.data;
   },
 
   logout: async (): Promise<ApiResponse<null>> => {
@@ -143,6 +161,23 @@ export const employeeAPI = {
     const response = await api.get(`/employees/timesheets${query}`);
     return response.data;
   },
+
+  downloadTimesheet: async (date: string) => {
+    const response = await fetch(
+      `${API_URL}/attendance/timesheets/download/${date}`,
+      {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message);
+    }
+
+    return response.blob();
+  },
 };
 
 // --- PROFILE API (For the Logged-in User) ---
@@ -172,13 +207,6 @@ export const profileAPI = {
   //   return response.data;
   // },
 };
-
-export interface CreateLeaveData {
-  leaveType: string;
-  reason: string;
-  startDate: string; // YYYY-MM-DD
-  endDate: string; // YYYY-MM-DD
-}
 
 // --- LEAVE API ---
 export const leaveAPI = {
@@ -235,6 +263,50 @@ export const payrollAPI = {
     return response.data;
   },
 };
+
+// --- ATTENDANCE API ---
+export const attendanceAPI = {
+  // 1. Check status (Used on Dashboard load)
+  getTodayStatus: async () => {
+    const response = await api.get('/attendance/today');
+    return response.data;
+  },
+
+  // 2. Clock In
+  clockIn: async () => {
+    const response = await api.post('/attendance/clock-in');
+    return response.data;
+  },
+
+  // 3. Clock Out
+  clockOut: async () => {
+    const response = await api.post('/attendance/clock-out');
+    return response.data;
+  },
+};
+
+export const dashboardAPI = {
+  // The Efficient Way: Fetch only the counts
+  getAdminStats: async () => {
+    // Determine endpoints based on your backend setup.
+    // Ideally, you have ONE endpoint that returns all stats:
+    // const response = await api.get('/dashboard/admin-stats');
+
+    // If you don't have that yet, you can still optimize by requesting "counts"
+    // if your generic endpoints support parameters like ?count=true,
+    // but a dedicated endpoint is best.
+
+    const response = await api.get('/dashboard/stats');
+    return response.data;
+  },
+};
+
+export interface CreateLeaveData {
+  leaveType: string;
+  reason: string;
+  startDate: string; // YYYY-MM-DD
+  endDate: string; // YYYY-MM-DD
+}
 
 export interface SalaryAnalyticsResponse {
   summary: {

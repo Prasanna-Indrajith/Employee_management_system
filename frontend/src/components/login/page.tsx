@@ -1,8 +1,25 @@
-import { GalleryVerticalEnd } from "lucide-react"
+import { GalleryVerticalEnd } from 'lucide-react';
 
-import { LoginForm } from "@/components/login-form"
+import { LoginForm } from '@/components/login-form';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 
 export default function LoginPage() {
+  const { isLoading, isAuthenticated, user } = useAuth();
+  const navigate = useNavigate();
+
+  // Manually redirect
+  useEffect(() => {
+    // Navigate ONLY when not loading and user is present
+    if (!isLoading && isAuthenticated && user) {
+      console.log('🚀 Redirecting to Dashboard...');
+      const target =
+        user.role === 'admin' ? '/admin/dashboard' : '/user/dashboard';
+      navigate(target, { replace: true });
+    }
+  }, [isLoading, isAuthenticated, user, navigate]);
+
   return (
     <div className="grid min-h-svh lg:grid-cols-2">
       <div className="flex flex-col gap-4 p-6 md:p-10">
@@ -28,5 +45,5 @@ export default function LoginPage() {
         />
       </div>
     </div>
-  )
+  );
 }
