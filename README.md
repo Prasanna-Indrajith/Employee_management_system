@@ -23,7 +23,7 @@ A comprehensive web application for managing employee data, attendance, leave re
 1.  **Clone the repository:**
 
     ```bash
-    git clone https://github.com/yourusername/employee-management-system.git
+    git clone https://github.com/Prasanna-Indrajith/Employee_management_system.git
     cd employee-management-system
     ```
 
