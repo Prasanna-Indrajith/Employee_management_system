@@ -111,7 +111,7 @@ export function SalaryReportsTab() {
           <CardHeader>
             <CardDescription>Total Annual Payroll</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              ${data.summary.totalAnnual.toLocaleString()}
+              Rs. {data.summary.totalAnnual.toLocaleString()}
             </CardTitle>
             <CardAction>
               <Badge
@@ -130,7 +130,7 @@ export function SalaryReportsTab() {
           <CardHeader>
             <CardDescription>Avg. Employee Salary</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              $
+              Rs.
               {data.summary.averageSalary.toLocaleString(undefined, {
                 maximumFractionDigits: 0,
               })}
@@ -297,7 +297,7 @@ export function SalaryReportsTab() {
                         </div>
                       </TableCell>
                       <TableCell className="font-mono text-base">
-                        ${item.currentSalary.toLocaleString()}
+                        Rs. {item.currentSalary.toLocaleString()}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {item.lastRaiseDate}
