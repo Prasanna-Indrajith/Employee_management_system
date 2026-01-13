@@ -9,6 +9,8 @@ import type {
   Payslip,
   PayrollRun,
   SalaryHistory,
+  SalaryAnalyticsResponse,
+  EmployeeSalaryBreakdown,
 } from '../types';
 
 // Point to your Backend URL
@@ -47,9 +49,27 @@ api.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
     if (error.response?.status === 401) {
+      console.log('🔒 JWT token expired or invalid - logging out');
+      
+      // Clear all authentication data
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      
+      // Clear any other auth-related data
+      localStorage.removeItem('authState');
+      sessionStorage.clear();
+      
+      // Only redirect if not already on login page
       if (!window.location.pathname.includes('/login')) {
+        // Show user-friendly message before redirect
+        const isExpired = (error.response?.data as any)?.message?.toLowerCase().includes('expired');
+        if (isExpired) {
+          alert('Your session has expired. Please log in again.');
+        } else {
+          alert('You have been logged out. Please log in again.');
+        }
+        
+        // Force redirect to login page
         window.location.href = '/login';
       }
     }
@@ -162,21 +182,18 @@ export const employeeAPI = {
     return response.data;
   },
 
-  downloadTimesheet: async (date: string) => {
-    const response = await fetch(
-      `${API_URL}/attendance/timesheets/download/${date}`,
-      {
-        method: 'GET',
-        headers: getAuthHeaders(),
-      }
-    );
+  generateTimesheetPDF: async (date: string): Promise<Blob> => {
+    const response = await api.get(`/employees/timesheets/pdf/${date}`, {
+      responseType: 'blob'
+    });
+    return response.data;
+  },
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message);
-    }
-
-    return response.blob();
+  downloadMyAttendancePDF: async (month: string): Promise<Blob> => {
+    const response = await api.get(`/employees/my-attendance/pdf/${month}`, {
+      responseType: 'blob'
+    });
+    return response.data;
   },
 };
 
@@ -185,8 +202,8 @@ export const profileAPI = {
   // 1. Get MY Attendance
   getMyAttendance: async (date?: string): Promise<ApiResponse<any[]>> => {
     const query = date ? `?date=${date}` : '';
-    // Use a specific 'me' endpoint or rely on backend to default to current user
-    const response = await api.get(`/attendance/me${query}`);
+    // Use the employee endpoint for user attendance
+    const response = await api.get(`/employees/me/attendance${query}`);
     return response.data;
   },
 
@@ -262,6 +279,27 @@ export const payrollAPI = {
     const response = await api.get('/payroll/reports');
     return response.data;
   },
+
+  // NEW: Get employee salary breakdown
+  getEmployeeSalaryBreakdown: async (employeeId?: string): Promise<ApiResponse<EmployeeSalaryBreakdown[]>> => {
+    const endpoint = employeeId ? `/payroll/breakdown/${employeeId}` : '/payroll/breakdown';
+    const response = await api.get(endpoint);
+    return response.data;
+  },
+
+  // NEW: Get single employee's detailed salary breakdown
+  getSingleEmployeeBreakdown: async (employeeId: string, payPeriod?: string): Promise<ApiResponse<EmployeeSalaryBreakdown>> => {
+    const query = payPeriod ? `?payPeriod=${payPeriod}` : '';
+    const response = await api.get(`/payroll/breakdown/${employeeId}${query}`);
+    return response.data;
+  },
+
+  downloadPayslipPDF: async (payslipId: string): Promise<Blob> => {
+    const response = await api.get(`/payroll/payslips/${payslipId}/pdf`, {
+      responseType: 'blob'
+    });
+    return response.data;
+  },
 };
 
 // --- ATTENDANCE API ---
@@ -308,43 +346,6 @@ export interface CreateLeaveData {
   endDate: string; // YYYY-MM-DD
 }
 
-export interface SalaryAnalyticsResponse {
-  summary: {
-    totalAnnual: number;
-    averageSalary: number;
-    yoyGrowth: number;
-  };
-  distribution: DepartmentSalaryStats[];
-  details: EmployeeSalaryDetail[];
-}
 
-// Matches "Detailed Breakdown" Table
-export interface EmployeeSalaryDetail {
-  id: string;
-  fullName: string;
-  department: string;
-  currentSalary: number;
-  lastRaiseDate: string;
-  avatarUrl?: string;
-}
-
-// Matches "Salary Distribution" Pie Chart
-export interface DepartmentSalaryStats {
-  department: string;
-  totalSalary: number;
-  percentage: number;
-  color: string;
-}
-
-// Matches the Analytics Response Wrapper
-export interface SalaryAnalyticsResponse {
-  summary: {
-    totalAnnual: number;
-    averageSalary: number;
-    yoyGrowth: number;
-  };
-  distribution: DepartmentSalaryStats[];
-  details: EmployeeSalaryDetail[];
-}
 
 export default api;

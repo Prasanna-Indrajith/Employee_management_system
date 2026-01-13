@@ -13,6 +13,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import type { SalaryGrowthTrend } from "@/types";
 
 export const description = "A line chart for salary growth";
 
@@ -34,7 +35,13 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-export function SalaryGrowthChart() {
+export function SalaryGrowthChart({ data }: { data?: SalaryGrowthTrend[] }) {
+  // Transform API data to chart format, fallback to mock data if no data provided
+  const transformedChartData = data?.map(item => ({
+    month: item.month,
+    salary: item.averageSalary,
+  })) || chartData;
+
   return (
     // Removed Card component. The fragment <> is used here for a direct render.
     // Use a <div> if you need a containing element for layout.
@@ -47,7 +54,7 @@ export function SalaryGrowthChart() {
         >
           <LineChart
             accessibilityLayer
-            data={chartData}
+            data={transformedChartData}
             margin={{
               left: 12,
               right: 12,

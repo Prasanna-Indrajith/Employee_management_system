@@ -45,22 +45,32 @@ export default function MyPayslips() {
     fetchPayslips();
   }, []);
 
-  // 2. Handle PDF Download (Simulated)
-  const handleDownload = (id: string, monthYear: string, pdfUrl?: string) => {
-    if (!pdfUrl) {
-      // If we don't have a real URL yet, simulate it
-      setDownloadingId(id);
-      setTimeout(() => {
-        setDownloadingId(null);
-        alert(
-          `Downloaded Payslip_${monthYear.replace(' ', '_')}.pdf successfully!`
-        );
-      }, 1500);
-      return;
-    }
+  // 2. Handle PDF Download (Server-Side)
+  const handleDownload = async (payslip: Payslip) => {
+    setDownloadingId(payslip.id);
+    
+    try {
+      // Call Backend API to get PDF Blob
+      const blob = await payrollAPI.downloadPayslipPDF(payslip.id);
+      
+      // Create a link to download the blob
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Payslip_${payslip.monthYear.replace(/\s/g, '_')}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url);
 
-    // If we have a real URL, open it
-    window.open(pdfUrl, '_blank');
+    } catch (error) {
+      console.error("PDF Download failed:", error);
+      alert("Failed to download PDF.");
+    } finally {
+      setDownloadingId(null);
+    }
   };
 
   // Helper: Format date string to "Oct 30, 2025"
@@ -151,9 +161,7 @@ export default function MyPayslips() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() =>
-                            handleDownload(slip.id, slip.monthYear, slip.pdfUrl)
-                          }
+                          onClick={() => handleDownload(slip)}
                           disabled={downloadingId === slip.id}
                         >
                           {downloadingId === slip.id ? (

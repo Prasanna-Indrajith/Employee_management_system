@@ -12,6 +12,7 @@ backend/*.md
 
 # Node modules (any depth)
 **/node_modules/
+*.bak
 
 # Build output
 **/dist/
@@ -30,3 +31,8 @@ backend/*.md
 .vscode/*
 !.vscode/extensions.json
 .idea/
+
+# sql 
+
+*.sql
+*/*.sql

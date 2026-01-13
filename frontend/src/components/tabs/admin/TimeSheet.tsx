@@ -54,18 +54,9 @@ export default function TimeSheet() {
 
   // Handle PDF Download
   const handleDownloadPDF = async () => {
-    const today = new Date().toISOString().split('T')[0];
-    const currentHour = new Date().getHours();
-
-    // Check if trying to download today's report before 5 PM
-    if (selectedDate === today && currentHour < 17) {
-      alert("Today's timesheet will be available after 5:00 PM");
-      return;
-    }
-
     setDownloading(true);
     try {
-      const blob = await employeeAPI.downloadTimesheet(selectedDate);
+      const blob = await employeeAPI.generateTimesheetPDF(selectedDate);
 
       // Create download link
       const url = window.URL.createObjectURL(blob);
@@ -82,6 +73,22 @@ export default function TimeSheet() {
     } finally {
       setDownloading(false);
     }
+  };
+
+  // --- Helper Function for Time Formatting ---
+  const formatTime = (timeString: string) => {
+    if (!timeString || timeString === '--:--') return '--:--';
+    
+    // Handle backend format which is already formatted as "HH24:MI" (e.g., "08:30", "17:30")
+    if (timeString.match(/^\d{2}:\d{2}$/)) {
+      const [hours, minutes] = timeString.split(':');
+      const hour24 = parseInt(hours);
+      const ampm = hour24 >= 12 ? 'PM' : 'AM';
+      const hour12 = hour24 % 12 || 12;
+      return `${hour12}:${minutes} ${ampm}`;
+    }
+    
+    return timeString; // Return as-is if no formatting works
   };
 
   // Client-side Filtering
@@ -247,10 +254,10 @@ export default function TimeSheet() {
                           </Badge>
                         </td>
                         <td className="p-4 text-green-600 font-medium">
-                          {entry.clockIn || '--:--'}
+                          {formatTime(entry.clockIn)}
                         </td>
                         <td className="p-4 text-orange-600 font-medium">
-                          {entry.clockOut || '--:--'}
+                          {formatTime(entry.clockOut)}
                         </td>
                         <td className="p-4">
                           <Badge

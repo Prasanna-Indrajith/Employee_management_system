@@ -127,6 +127,18 @@ export interface Payslip {
   netSalary: number;
   status: PayslipStatus; // Uses the strict type above
   pdfUrl?: string;
+  // Detailed Breakdown
+  baseSalary?: number;
+  grossPay?: number;
+  totalDeductions?: number;
+  bonuses?: number;
+  allowances?: number;
+  commissions?: number;
+  overtimePay?: number;
+  federalTax?: number;
+  stateTax?: number;
+  insurance?: number;
+  otherDeductions?: number;
 }
 
 export interface SalaryHistory {
@@ -164,4 +176,29 @@ export interface DepartmentSalaryStats {
 export interface SalaryGrowthTrend {
   month: string;
   averageSalary: number;
+}
+
+// Enhanced Employee Salary Breakdown (New)
+export interface EmployeeSalaryBreakdown {
+  id: string;
+  fullName: string;
+  department: string;
+  baseSalary: number;
+  totalEarnings: number;  // base + overtime + bonuses + allowances
+  totalDeductions: number; // taxes + insurance + other deductions
+  netPay: number;
+  payPeriod: string;
+  lastUpdated: string;
+}
+
+// Matches the Analytics Response Wrapper
+export interface SalaryAnalyticsResponse {
+  summary: {
+    totalAnnual: number;
+    averageSalary: number;
+    yoyGrowth: number;
+  };
+  distribution: DepartmentSalaryStats[];
+  details: EmployeeSalaryDetail[];
+  breakdowns?: EmployeeSalaryBreakdown[]; // Optional detailed breakdowns
 }

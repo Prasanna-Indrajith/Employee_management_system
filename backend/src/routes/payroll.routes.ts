@@ -9,6 +9,7 @@ router.get("/runs", authenticateToken, payrollController.getRuns);
 
 // User Routes
 router.get("/payslips/me", authenticateToken, payrollController.getMyPayslips);
+router.get("/payslips/:id/pdf", authenticateToken, payrollController.downloadPayslip);
 router.get(
   "/salary-history/me",
   authenticateToken,

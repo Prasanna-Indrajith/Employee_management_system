@@ -3,6 +3,7 @@
 // The "View" Model (Sent to Frontend)
 export interface Employee {
   id: string;
+  employeeId: string;
   fullName: string;
   email: string;
   phone: string;
@@ -109,6 +110,18 @@ export interface Payslip {
   netSalary: number;
   status: string; // 'Paid', 'Pending'
   pdfUrl?: string;
+  // Detailed Breakdown (Optional, fetched when needed)
+  baseSalary?: number;
+  grossPay?: number;
+  totalDeductions?: number;
+  bonuses?: number;
+  allowances?: number;
+  commissions?: number;
+  overtimePay?: number;
+  federalTax?: number;
+  stateTax?: number;
+  insurance?: number;
+  otherDeductions?: number;
 }
 
 export interface SalaryHistory {

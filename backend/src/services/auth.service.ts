@@ -28,12 +28,11 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(data.password, salt);
 
     // 2. Save to DB
-    return await this.userRepository.create(
+  return await this.userRepository.create(
       data.email,
       hashedPassword,
       data.fullName,
-      data.role,
-      data.employeeId
+      data.role
     );
   }
 
@@ -54,11 +53,19 @@ export class AuthService {
     const token = jwt.sign(
       { id: user.id, role: user.role, email: user.email },
       this.JWT_SECRET,
-      { expiresIn: "1d" } // Token expires in 1 day
+      { expiresIn: "1h" } // Token expires in 1 hour
     );
 
     // Return User info (excluding hash) and Token
     const { password_hash, ...userWithoutPassword } = user;
     return { user: userWithoutPassword, token };
+  }
+
+  // LOGOUT Logic (Stateless)
+  async logout(userId: string | undefined) {
+    // In a stateless JWT system, the backend doesn't technically "logout" 
+    // unless using a token blacklist (Redis/DB).
+    // For now, we just acknowledge the request.
+    return true;
   }
 }

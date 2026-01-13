@@ -13,6 +13,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import type { DepartmentSalaryStats } from "@/types";
 
 // Custom data for department-wise salaries
 const chartData = [
@@ -50,7 +51,14 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-export function DepartmentSalaryChart() {
+export function DepartmentSalaryChart({ data }: { data?: DepartmentSalaryStats[] }) {
+  // Transform API data to chart format, fallback to mock data if no data provided
+  const transformedChartData = data?.map(item => ({
+    department: item.department,
+    salary: item.totalSalary,
+    fill: item.color || `var(--chart-${(data?.indexOf(item) || 0) % 6 + 1})`,
+  })) || chartData;
+
   // We remove the Card wrapper here. The fragment <> is used if you just want to wrap
   // without adding a DOM element, or you can use a simple <div> if you need one.
   return (
@@ -63,7 +71,7 @@ export function DepartmentSalaryChart() {
           <PieChart>
             <ChartTooltip content={<ChartTooltipContent />} />
             <Pie
-              data={chartData}
+              data={transformedChartData}
               dataKey="salary"
               nameKey="department"
               stroke="none"

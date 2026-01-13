@@ -15,6 +15,10 @@ export const payrollService = {
     return await payrollRepository.getSalaryHistory(userId);
   },
 
+  getPayslipById: async (id: string, employeeId: string) => {
+    return await payrollRepository.getPayslipById(id, employeeId);
+  },
+
   // Analytics Logic (The one you were missing)
   getReports: async () => {
     // Just call the repository, no req/res here!

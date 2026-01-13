@@ -1,4 +1,4 @@
-import { query, pool } from "../config/db"; // Ensure you export 'pool' from db config
+import { query, pool } from "../config/db";
 import { Employee, CreateEmployeeDTO } from "../types";
 import bcrypt from "bcryptjs";
 
@@ -12,7 +12,7 @@ export class EmployeeRepository {
       ORDER BY created_at DESC 
       LIMIT 1
     `;
-    // Use the transaction client, not the global query
+    // Use the transaction client
     const result = await client.query(sql);
 
     if (result.rows.length === 0) return "EMP001";
@@ -24,7 +24,6 @@ export class EmployeeRepository {
 
   // --- FETCH ALL ---
   async findAll(): Promise<Employee[]> {
-    // ... (Your existing findAll code is fine) ...
     const sql = `
       SELECT 
         e.id, 
@@ -53,7 +52,6 @@ export class EmployeeRepository {
 
   // --- FIND BY ID ---
   async findById(id: string): Promise<Employee | null> {
-    // ... (Your existing findById code is fine) ...
     const sql = `
       SELECT 
         e.id, 
@@ -81,14 +79,14 @@ export class EmployeeRepository {
     return result.rows[0] || null;
   }
 
-  // --- CREATE NEW EMPLOYEE (The Big Change) ---
+  // --- CREATE NEW EMPLOYEE ---
   async create(data: CreateEmployeeDTO): Promise<Employee> {
-    const client = await pool.connect(); // Get a dedicated client for transaction
+    const client = await pool.connect();
 
     try {
-      await client.query("BEGIN"); // Start Transaction
+      await client.query("BEGIN");
 
-      // 1. Hash the Default Password ("123")
+      // 1. Hash the Default Password
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash("123", salt);
 
@@ -104,15 +102,15 @@ export class EmployeeRepository {
         data.fullName,
         data.role,
       ]);
-      const newUserId = userResult.rows[0].id; // We get the UUID here
+      const newUserId = userResult.rows[0].id;
 
-      // 3. Generate Custom Employee ID (EMP001)
+      // 3. Generate Custom Employee ID
       const newEmployeeId = await this.generateEmployeeId(client);
 
-      // 4. Insert into EMPLOYEES table (Linking to User via ID)
+      // 4. Insert into EMPLOYEES table
       const empSql = `
         INSERT INTO employees (
-          id,             -- Explicitly use the User ID (One-to-One link)
+          id,             
           employee_id,
           full_name, 
           email, 
@@ -133,25 +131,25 @@ export class EmployeeRepository {
       `;
 
       const empParams = [
-        newUserId, // $1 (Same as users.id)
-        newEmployeeId, // $2
-        data.fullName, // $3
-        data.email, // $4
-        data.phone, // $5
-        data.departmentId, // $6
-        data.positionId, // $7
-        data.locationId, // $8
-        data.hireDate, // $9
-        data.salary, // $10
-        data.role, // $11
-        data.employmentType, // $12
-        data.bio, // $13
-        data.skills, // $14
+        newUserId, // Link to User ID
+        newEmployeeId,
+        data.fullName,
+        data.email,
+        data.phone,
+        data.departmentId,
+        data.positionId,
+        data.locationId,
+        data.hireDate,
+        data.salary,
+        data.role,
+        data.employmentType,
+        data.bio,
+        data.skills,
       ];
 
       await client.query(empSql, empParams);
 
-      await client.query("COMMIT"); // Save everything
+      await client.query("COMMIT");
 
       // 5. Return the full object
       const fullEmployee = await this.findById(newUserId);
@@ -159,10 +157,10 @@ export class EmployeeRepository {
 
       return fullEmployee;
     } catch (error) {
-      await client.query("ROLLBACK"); // If anything fails, undo everything
+      await client.query("ROLLBACK");
       throw error;
     } finally {
-      client.release(); // Release connection back to pool
+      client.release();
     }
   }
 
@@ -173,16 +171,10 @@ export class EmployeeRepository {
   ): Promise<Employee | null> {
     const client = await pool.connect();
 
-    console.log("Done : repository : 20");
-
     try {
       await client.query("BEGIN");
 
-      // =========================================================
-      // 1. UPDATE EMPLOYEES TABLE (Dynamic Logic)
-      // =========================================================
-
-      // Map DTO (camelCase) to Database Columns (snake_case)
+      // 1. UPDATE EMPLOYEES TABLE
       const fieldMap: Record<string, string> = {
         fullName: "full_name",
         email: "email",
@@ -206,7 +198,6 @@ export class EmployeeRepository {
         const dbColumn = fieldMap[key];
         const value = (data as any)[key];
 
-        // Ensure we only update valid mapped columns that have a value
         if (dbColumn && value !== undefined) {
           empUpdateParts.push(`${dbColumn} = $${empCounter++}`);
           empValues.push(value);
@@ -214,8 +205,7 @@ export class EmployeeRepository {
       });
 
       if (empUpdateParts.length > 0) {
-        console.log(empUpdateParts);
-        empValues.push(id); // Add ID as the final parameter
+        empValues.push(id);
         const empSql = `
             UPDATE employees 
             SET ${empUpdateParts.join(", ")} 
@@ -224,12 +214,7 @@ export class EmployeeRepository {
         await client.query(empSql, empValues);
       }
 
-      // =========================================================
       // 2. SYNC USERS TABLE (Keep Login Details Updated)
-      // =========================================================
-
-      // If the employee changes their Name or Email, we must update the 'users' table
-      // so they can still login (if you use email for login) and see their new name.
       if (data.email || data.fullName) {
         const userUpdateParts: string[] = [];
         const userValues: any[] = [];
@@ -246,21 +231,21 @@ export class EmployeeRepository {
         }
 
         if (userUpdateParts.length > 0) {
-          userValues.push(id); // Use Employee ID to find the User
+          userValues.push(id);
 
-          // NOTE: We update 'users' WHERE 'employee_id' matches
+          // Corrected: Updating users where 'id' matches (since it's a 1:1 match with employees.id)
           const userSql = `
-              UPDATE users 
-              SET ${userUpdateParts.join(", ")} 
-              WHERE employee_id = $${userCounter}
+            UPDATE users 
+            SET ${userUpdateParts.join(", ")} 
+            WHERE id = $${userCounter} 
           `;
+
           await client.query(userSql, userValues);
         }
       }
 
       await client.query("COMMIT");
 
-      // 3. Return the fresh, updated object
       return this.findById(id);
     } catch (error) {
       await client.query("ROLLBACK");
@@ -271,9 +256,8 @@ export class EmployeeRepository {
     }
   }
 
-  // --- GET TIMESHEETS (With Employee Details) ---
+  // --- GET TIMESHEETS (Admin View) ---
   async findTimesheets(date?: string): Promise<any[]> {
-    // If date is provided, filter by it. Otherwise get recent ones.
     const queryParams: any[] = [];
     let whereClause = "";
 
@@ -286,8 +270,8 @@ export class EmployeeRepository {
       SELECT 
         t.id,
         t.date,
-        to_char(t.clock_in, 'HH24:MI') as "clockIn",   -- Format as 09:00
-        to_char(t.clock_out, 'HH24:MI') as "clockOut", -- Format as 17:30
+        to_char(t.clock_in, 'HH24:MI') as "clockIn",
+        to_char(t.clock_out, 'HH24:MI') as "clockOut",
         t.status,
         e.full_name as "employeeName",
         e.employee_id as "employeeId",
@@ -303,12 +287,12 @@ export class EmployeeRepository {
     return result.rows;
   }
 
-  // Find the employee profile linked to the logged-in User ID
+  // --- FIND PROFILE BY USER ID ---
   async findProfileByUserId(userId: string): Promise<Employee | null> {
     const sql = `
       SELECT
         e.id,
-        e.employee_id as "employeeId", -- Ensure your column names match your DB
+        e.employee_id as "employeeId",
         e.full_name as "fullName",
         e.email,
         e.phone,
@@ -323,37 +307,29 @@ export class EmployeeRepository {
         e.employment_type as "employmentType",
         e.bio
       FROM employees e
-      JOIN users u ON u.id = e.id
+      -- Removed unnecessary JOIN to users if we already have the ID
       LEFT JOIN departments d ON e.department_id = d.id
       LEFT JOIN positions p ON e.position_id = p.id
       LEFT JOIN locations l ON e.location_id = l.id
-      WHERE u.id = $1
+      WHERE e.id = $1 
       `;
 
-    // const sql = `
-    //   SELECT e.*
-    //   FROM employees e
-    //   JOIN users u ON u.employee_id = e.id
-    //   WHERE id = $1;
-    // `;
-
+    // Note: We query employees directly using userId because they share the same Primary Key (id)
     const result = await pool.query(sql, [userId]);
 
-    // 2. [CRITICAL FIX] Check if a row was actually found!
     if (result.rows.length === 0) {
-      console.warn(`No employee profile found for User ID: ${userId}`);
-      return null; // Return null safely instead of crashing
+      return null;
     }
 
-    // Map the raw DB result to your Employee type
     const row = result.rows[0];
 
     return {
-      id: row.employeeId,
-      fullName: row.fullName, // Map snake_case to camelCase
+      id: row.id, // Correct: Use UUID
+      employeeId: row.employeeId, // Correct: Use Custom ID (EMP001)
+      fullName: row.fullName,
       email: row.email,
       phone: row.phone,
-      role: "user",
+      role: row.role || "user",
       location: row.location || "N/A",
       department: row.department || "General",
       position: row.position || "Staff",
@@ -362,7 +338,7 @@ export class EmployeeRepository {
       salary: parseFloat(row.salary),
       employmentType: row.employmentType,
       bio: row.bio,
-      skills: row.skills || [], // Assuming skills is a string array column
+      skills: row.skills || [],
     };
   }
 
@@ -372,34 +348,23 @@ export class EmployeeRepository {
     data: { phone: string; bio: string; skills: string[] }
   ) {
     try {
-      // 1. Ensure the SQL has access to the 'users' table (u)
-      // 2. Ensure every $n matches the index in the array below
       const sql = `
-      UPDATE employees e
-      SET 
-        phone = $1,
-        bio = $2,
-        skills = $3
-      FROM users u
-      WHERE u.employee_id = e.id AND u.id = $4
-      RETURNING e.*;
+        UPDATE employees
+        SET 
+          phone = $1,
+          bio = $2,
+          skills = $3
+        WHERE id = $4
+        RETURNING *;
       `;
-      // location = $2,
 
-      const values = [
-        data.phone, // $1
-        // data.location, // $2
-        data.bio, // $3
-        data.skills, // $4
-        userId, // $5
-      ];
+      const values = [data.phone, data.bio, data.skills, userId];
 
       const result = await pool.query(sql, values);
-
       return result.rows[0];
     } catch (error) {
       console.error("Error updating profile:", error);
-      throw error; // Rethrow so the caller knows it failed
+      throw error;
     }
   }
 
@@ -407,8 +372,70 @@ export class EmployeeRepository {
   async delete(id: string): Promise<boolean> {
     const sql = `DELETE FROM employees WHERE id = $1 RETURNING id`;
     const result = await pool.query(sql, [id]);
-
-    // Returns true if a row was actually deleted
     return result.rowCount !== null && result.rowCount > 0;
+  }
+
+  // --- GET USER MONTHLY ATTENDANCE ---
+  async getUserMonthlyAttendance(
+    employeeId: string,
+    month: string
+  ): Promise<any[]> {
+    const sql = `
+    SELECT 
+      t.date,
+      to_char(t.clock_in, 'HH24:MI') as "clockIn",
+      to_char(t.clock_out, 'HH24:MI') as "clockOut",
+      t.status,
+      COALESCE(l.name, 'Office') as "location"
+    FROM timesheets t
+    LEFT JOIN employees e ON t.employee_id = e.id
+    LEFT JOIN locations l ON e.location_id = l.id 
+    WHERE t.employee_id = $1 
+      AND TO_CHAR(t.date, 'YYYY-MM') = $2
+    ORDER BY t.date ASC;
+  `;
+
+    const result = await query(sql, [employeeId, month]);
+    return result.rows;
+  }
+
+  // --- GET TIMESHEETS (Public method) ---
+  async getTimesheets(date?: string): Promise<any[]> {
+    return this.findTimesheets(date);
+  }
+
+  // --- GET EMPLOYEE ATTENDANCE (for current user) ---
+  async findEmployeeAttendance(
+    employeeId: string,
+    date?: string
+  ): Promise<any[]> {
+    const queryParams: any[] = [employeeId];
+    let whereClause = "WHERE t.employee_id = $1";
+
+    if (date) {
+      whereClause += " AND DATE(t.date) = $2";
+      queryParams.push(date);
+    } else {
+      whereClause +=
+        " AND TO_CHAR(t.date, 'YYYY-MM') = TO_CHAR(CURRENT_DATE, 'YYYY-MM')";
+    }
+
+    const sql = `
+    SELECT 
+      t.id,
+      t.date,
+      to_char(t.clock_in, 'HH24:MI') as "clockIn",
+      to_char(t.clock_out, 'HH24:MI') as "clockOut",
+      t.status,
+      COALESCE(l.name, 'Office') as "location"
+    FROM timesheets t
+    LEFT JOIN employees e ON t.employee_id = e.id
+    LEFT JOIN locations l ON e.location_id = l.id
+    ${whereClause}
+    ORDER BY t.date DESC;
+  `;
+
+    const result = await query(sql, queryParams);
+    return result.rows;
   }
 }

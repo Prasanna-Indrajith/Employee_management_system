@@ -137,7 +137,7 @@ export function PayrollTab() {
           <CardHeader>
             <CardDescription>Latest Run Cost</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              ${formatCurrency(currentStats.estimatedCost)}
+              Rs.{formatCurrency(currentStats.estimatedCost)}
             </CardTitle>
             <CardAction>
               <Badge
@@ -239,7 +239,7 @@ export function PayrollTab() {
                         {formatDate(run.payPeriodEnd)}
                       </TableCell>
                       <TableCell className="font-mono">
-                        ${formatCurrency(run.totalDisbursed)}
+                        Rs.{formatCurrency(run.totalDisbursed)}
                       </TableCell>
                       <TableCell>
                         <Badge

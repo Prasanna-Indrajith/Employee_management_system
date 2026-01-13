@@ -18,21 +18,75 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
-import { employeeAPI } from '@/services/api'; // Import API
-import type { Employee } from '@/types'; // Import Type
+import { employeeAPI, payrollAPI } from '@/services/api';
+import type { Employee } from '@/types';
+// Import the Interface from the component to ensure types match exactly
+// import {
+//   SalaryBreakdownCard,
+//   SalaryBreakdown,
+// } from '@/components/ui/salary-breakdown-card';
 
 export default function UserProfile() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Employee | null>(null);
 
-  // 1. Fetch Real Data
+  // FIX 1: State uses the UI Component's type, not the API type
+  // const [salaryBreakdown, setSalaryBreakdown] =
+  //   useState<SalaryBreakdown | null>(null);
+
+  // FIX 2: Helper function to transform API data to UI format
+  // const transformSalaryData = (apiData: any): SalaryBreakdown => {
+  //   // defaults to 0 to prevent NaN
+  //   const base = apiData.baseSalary || 0;
+  //   const overtime = apiData.overtimePay || 0;
+  //   const bonuses = apiData.bonuses || 0;
+  //   const allowances = apiData.allowances || 0;
+  //   const commissions = apiData.commissions || 0;
+
+  //   // Calculate total earnings if missing
+  //   const totalEarnings = base + overtime + bonuses + allowances + commissions;
+
+  //   const fedTax = apiData.federalTax || 0;
+  //   const stateTax = apiData.stateTax || 0;
+  //   const insurance = apiData.insurance || 0;
+  //   const retirement = apiData.retirement || 0;
+  //   const other = apiData.otherDeductions || 0;
+
+  //   // Calculate total deductions if missing
+  //   const totalDeductions = fedTax + stateTax + insurance + retirement + other;
+
+  //   return {
+  //     baseSalary: base,
+  //     grossPay: apiData.grossPay || totalEarnings,
+  //     netPay: apiData.netPay || totalEarnings - totalDeductions,
+  //     earnings: {
+  //       base: base,
+  //       overtime: overtime,
+  //       bonuses: bonuses,
+  //       allowances: allowances,
+  //       commissions: commissions,
+  //       total: totalEarnings,
+  //     },
+  //     deductions: {
+  //       federalTax: fedTax,
+  //       stateTax: stateTax,
+  //       insurance: insurance,
+  //       retirement: retirement,
+  //       otherDeductions: other,
+  //       total: totalDeductions,
+  //     },
+  //     yearToDate: apiData.yearToDate || undefined,
+  //   };
+  // };
+
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         const response = await employeeAPI.getMyProfile();
         if (response.success && response.data) {
           setProfile(response.data);
+          fetchSalaryBreakdown(response.data.id);
         }
       } catch (error) {
         console.error('Failed to load profile', error);
@@ -41,15 +95,30 @@ export default function UserProfile() {
       }
     };
 
+    const fetchSalaryBreakdown = async (employeeId: string) => {
+      if (!employeeId) return;
+
+      try {
+        const response = await payrollAPI.getSingleEmployeeBreakdown(
+          employeeId
+        );
+        if (response.success && response.data) {
+          // FIX 3: Transform data before setting state
+          // const formattedData = transformSalaryData(response.data);
+          // setSalaryBreakdown(formattedData);
+        }
+      } catch (error) {
+        console.error('Failed to fetch salary breakdown:', error);
+      }
+    };
+
     fetchProfile();
   }, []);
 
-  // Helper: Format Currency (e.g. 120000 -> Rs. 120,000)
   const formatCurrency = (amount: number) => {
     return `Rs. ${amount.toLocaleString('en-US')}`;
   };
 
-  // Helper: Format Date (e.g. 2023-01-15 -> Jan 15, 2023)
   const formatDate = (dateStr: string) => {
     if (!dateStr) return 'N/A';
     return new Date(dateStr).toLocaleDateString('en-US', {
@@ -84,7 +153,6 @@ export default function UserProfile() {
       {/* Header */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex flex-row gap-4 items-center">
-          {/* Avatar Placeholder */}
           <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center border-2 border-background shadow-sm">
             <User className="h-8 w-8 text-muted-foreground" />
           </div>
@@ -111,7 +179,6 @@ export default function UserProfile() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column: Personal Info & Skills */}
         <div className="lg:col-span-2 space-y-6">
-          {/* 1. Contact & Basic Info */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -188,7 +255,6 @@ export default function UserProfile() {
                 </div>
               </div>
 
-              {/* Bio Section */}
               <div className="pt-4 border-t">
                 <h4 className="text-sm font-medium mb-2">About Me</h4>
                 <p className="text-sm text-muted-foreground leading-relaxed">
@@ -198,7 +264,6 @@ export default function UserProfile() {
             </CardContent>
           </Card>
 
-          {/* 2. Skills */}
           <Card>
             <CardHeader>
               <CardTitle>Skills & Expertise</CardTitle>
@@ -238,7 +303,6 @@ export default function UserProfile() {
                     Employee ID
                   </span>
                   <span className="text-sm font-medium font-mono">
-                    {/* Show a shortened ID if it's a long UUID */}
                     {profile.id.length > 8
                       ? `...${profile.id.slice(-6)}`
                       : profile.id}
@@ -278,6 +342,25 @@ export default function UserProfile() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Salary Breakdown */}
+          {/* {salaryBreakdown && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Salary Breakdown</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <SalaryBreakdownCard
+                  breakdown={salaryBreakdown}
+                  employeeName=""
+                  department=""
+                  position=""
+                  payPeriod=""
+                  compact={true}
+                />
+              </CardContent>
+            </Card>
+          )} */}
         </div>
       </div>
     </div>

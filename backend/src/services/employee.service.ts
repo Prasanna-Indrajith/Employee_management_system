@@ -69,6 +69,10 @@ export class EmployeeService {
   async deleteEmployee(id: string) {
     return await this.employeeRepository.delete(id);
   }
+
+  async getEmployeeAttendance(employeeId: string, date?: string) {
+    return await this.employeeRepository.findEmployeeAttendance(employeeId, date);
+  }
 }
 
 export const employeeService = new EmployeeService();

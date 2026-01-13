@@ -32,8 +32,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import DeleteConfirmationCard from '../../ui/delete-confirmation'; // Verify this path
 
 // Import API and Shared Types
-import { employeeAPI } from '@/services/api';
-import type { Employee } from '@/types';
+import { employeeAPI, payrollAPI } from '@/services/api';
+import type { Employee, EmployeeSalaryBreakdown } from '@/types';
+
 import { toast } from 'sonner';
 
 export default function EmployeeProfile() {
@@ -44,25 +45,43 @@ export default function EmployeeProfile() {
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   const [employee, setEmployee] = React.useState<Employee | null>(null);
+  const [salaryBreakdown, setSalaryBreakdown] = React.useState<EmployeeSalaryBreakdown | null>(null);
 
   // --- FETCH DATA ---
   React.useEffect(() => {
     const fetchEmployee = async () => {
-      if (!id) return;
       try {
-        setLoading(true);
-        const response = await employeeAPI.getById(id);
+        const response = await employeeAPI.getById(id!);
         if (response.success) {
           setEmployee(response.data);
+          // Also fetch salary breakdown
+          fetchSalaryBreakdown(id!);
         }
       } catch (error) {
-        console.error('Failed to fetch employee', error);
+        console.error('Failed to fetch employee:', error);
+        toast.error('Failed to load employee data');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchEmployee();
+    const fetchSalaryBreakdown = async (employeeId: string) => {
+      if (!employeeId) return;
+      
+      try {
+        const response = await payrollAPI.getSingleEmployeeBreakdown(employeeId);
+        if (response.success && response.data) {
+          setSalaryBreakdown(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch salary breakdown:', error);
+        // Don't show error toast for salary breakdown as it's secondary
+      }
+    };
+
+    if (id) {
+      fetchEmployee();
+    }
   }, [id]);
 
   // --- HANDLERS ---
@@ -405,6 +424,35 @@ export default function EmployeeProfile() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Salary Breakdown */}
+          {salaryBreakdown && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Salary Breakdown</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Base Salary</span>
+                    <span>{formatCurrency(salaryBreakdown.baseSalary)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Total Earnings</span>
+                    <span className="text-green-600 font-medium">+{formatCurrency(salaryBreakdown.totalEarnings)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Total Deductions</span>
+                    <span className="text-red-600 font-medium">-{formatCurrency(salaryBreakdown.totalDeductions)}</span>
+                  </div>
+                  <div className="border-t pt-2 mt-2 flex justify-between font-bold">
+                    <span>Net Pay</span>
+                    <span>{formatCurrency(salaryBreakdown.netPay)}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Quick Actions */}
           <Card>

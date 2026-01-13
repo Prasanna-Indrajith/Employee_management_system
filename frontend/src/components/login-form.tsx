@@ -82,7 +82,7 @@ export function LoginForm({
           <Input
             id="email"
             type="email"
-            placeholder="m@example.com"
+            placeholder="nuwan.gamage@orian.com"
             required
             value={formData.email}
             onChange={handleChange}
@@ -104,6 +104,7 @@ export function LoginForm({
           <Input
             id="password"
             type="password"
+            placeholder="***"
             required
             value={formData.password}
             onChange={handleChange}

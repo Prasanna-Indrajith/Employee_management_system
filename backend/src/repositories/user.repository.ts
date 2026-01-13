@@ -37,14 +37,14 @@ export class UserRepository {
     const sql = `
       INSERT INTO users (email, password_hash, full_name, role, employee_id)
       VALUES ($1, $2, $3, $4, $5)
-      RETURNING *;
+      RETURNING *
     `;
     const result = await query(sql, [
       email,
       passwordHash,
       fullName,
       role,
-      employeeId,
+      employeeId
     ]);
     return this.mapRowToUser(result.rows[0]);
   }

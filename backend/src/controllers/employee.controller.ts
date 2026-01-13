@@ -2,6 +2,8 @@
 import { Request, Response } from "express";
 import { z } from "zod"; // Validation Library
 import { EmployeeService } from "../services/employee.service";
+import { TimesheetPDFService } from "../services/timesheet-pdf.service";
+// import { auditService, AuditAction } from "../services/audit.service";
 
 // 1. Define Validation Schema (Production Grade Input Safety)
 const createEmployeeSchema = z.object({
@@ -106,9 +108,15 @@ export class EmployeeController {
   // PUT /api/employees/:id
   update = async (req: Request, res: Response) => {
     console.log("Done : Controller : 1");
+    // const { ipAddress, userAgent } = auditService.getUserFromRequest(req);
+    const userId = (req as any).user?.id;
+
     try {
       const { id } = req.params;
       console.log(req.body);
+
+      // Get old employee data for audit
+      const oldEmployee = await this.employeeService.getEmployeeById(id);
 
       // 1. Validate Partial Input (allow updating just some fields)
       // We use .partial() to make all fields optional for updates
@@ -128,6 +136,37 @@ export class EmployeeController {
           .json({ success: false, message: "Employee not found" });
       }
 
+      // Log employee update
+      // await auditService.logAudit({
+      //   action: AuditAction.EMPLOYEE_UPDATED,
+      //   resourceType: 'employee' as any,
+      //   resourceId: id,
+      //   oldValues: oldEmployee ? {
+      //     fullName: oldEmployee.fullName,
+      //     email: oldEmployee.email,
+      //     salary: oldEmployee.salary,
+      //     status: oldEmployee.status
+      //   } : null,
+      //   newValues: validatedData,
+      //   ipAddress,
+      //   userAgent,
+      //   status: 'SUCCESS',
+      //   message: `Employee updated: ${id}`
+      // });
+
+      // Special logging for salary changes
+      // if (oldEmployee && validatedData.salary && oldEmployee.salary !== validatedData.salary) {
+      //   await auditService.logSalaryChange(
+      //     userId,
+      //     id,
+      //     oldEmployee.salary,
+      //     validatedData.salary,
+      //     `Salary updated by ${userId}`,
+      //     ipAddress,
+      //     userAgent
+      //   );
+      // }
+
       res.status(200).json({
         success: true,
         data: updatedEmployee,
@@ -140,6 +179,19 @@ export class EmployeeController {
           errors: error.issues,
         });
       }
+
+      // Log failed update
+      // await auditService.logAudit({
+      //   action: AuditAction.EMPLOYEE_UPDATED,
+      //   resourceType: 'employee' as any,
+      //   resourceId: req.params.id,
+      //   newValues: req.body,
+      //   ipAddress,
+      //   userAgent,
+      //   status: 'FAILED',
+      //   message: `Employee update failed: ${error.message}`
+      // });
+
       res.status(500).json({ success: false, message: error.message });
     }
     console.log("Done : Controller : 4");
@@ -246,6 +298,104 @@ export class EmployeeController {
             "Cannot delete employee: They have associated payroll or user records.",
         });
       }
+      res.status(500).json({ success: false, message: error.message });
+    }
+  };
+
+  // GET /api/employees/timesheets/pdf/:date
+  downloadTimesheetPDF = async (req: Request, res: Response) => {
+    try {
+      const { date } = req.params;
+      const { department, status } = req.query;
+
+      const pdfService = new TimesheetPDFService();
+      const pdfBuffer = await pdfService.generateAdminTimesheetPDF(
+        date as string,
+        {
+          department: department as string,
+          status: status as string,
+        }
+      );
+
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="timesheet_${date}.pdf"`
+      );
+      res.send(pdfBuffer);
+    } catch (error: any) {
+      console.error("Error generating timesheet PDF:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  };
+
+  // GET /api/employees/my-attendance/pdf/:month
+  downloadMyAttendancePDF = async (req: Request, res: Response) => {
+    try {
+      const { month } = req.params;
+      const userId = (req as any).user?.id;
+
+      if (!userId) {
+        return res
+          .status(401)
+          .json({ success: false, message: "Unauthorized" });
+      }
+
+      // Get employee ID from user ID
+      const employee = await this.employeeService.getProfile(userId);
+      if (!employee) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Employee not found" });
+      }
+
+      const pdfService = new TimesheetPDFService();
+      const pdfBuffer = await pdfService.generateUserMonthlyPDF(
+        employee.id,
+        month
+      );
+
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="attendance_${month}.pdf"`
+      );
+      res.send(pdfBuffer);
+    } catch (error: any) {
+      console.error("Error generating attendance PDF:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  };
+
+  // GET /api/employees/me/attendance - Get current user's attendance
+  getMyAttendance = async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?.id;
+
+      if (!userId) {
+        return res
+          .status(401)
+          .json({ success: false, message: "Unauthorized" });
+      }
+
+      // Get user's employee profile first to get employee ID
+      const employee = await this.employeeService.getProfile(userId);
+      if (!employee) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Employee profile not found" });
+      }
+
+      // Get attendance data for this employee
+      const { date } = req.query;
+      const attendanceData = await this.employeeService.getEmployeeAttendance(
+        employee.id,
+        date as string
+      );
+
+      res.status(200).json({ success: true, data: attendanceData });
+    } catch (error: any) {
+      console.error("Error fetching my attendance:", error);
       res.status(500).json({ success: false, message: error.message });
     }
   };

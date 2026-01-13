@@ -6,7 +6,7 @@ import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 
 // Import User Tabs
 import UserDashboard from '@/components/tabs/user/Dashboard';
-// These act as placeholders until you build the specific files
+// These act as placeholders until you build specific files
 import MyAttendance from '@/components/tabs/user/MyAttendance';
 import MyLeaves from '@/components/tabs/user/MyLeaves';
 import MyPayslips from '@/components/tabs/user/MyPayslips';

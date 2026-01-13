@@ -21,12 +21,51 @@ export const payrollRepository = {
   // 2. USER: Get My Payslips
   getPayslipsByEmployee: async (employeeId: string): Promise<Payslip[]> => {
     const sql = `
-      SELECT * FROM payslips 
-      WHERE employee_id = $1 
-      ORDER BY issue_date DESC
+      SELECT 
+        p.*,
+        pi.base_salary,
+        pi.gross_pay,
+        pi.total_deductions,
+        pi.federal_tax,
+        pi.state_tax,
+        pi.insurance,
+        pi.other_deductions,
+        pi.bonuses,
+        pi.allowances,
+        pi.commissions,
+        pi.overtime_pay
+      FROM payslips p
+      LEFT JOIN payroll_items pi ON p.payroll_run_id = pi.payroll_run_id AND p.employee_id = pi.employee_id
+      WHERE p.employee_id = $1 
+      ORDER BY p.issue_date DESC
     `;
     const result = await pool.query(sql, [employeeId]);
     return result.rows.map(mapPayslip);
+  },
+
+  // Get Single Payslip by ID (with authorization check via employeeId)
+  getPayslipById: async (id: string, employeeId: string): Promise<Payslip | null> => {
+    const sql = `
+      SELECT 
+        p.*,
+        pi.base_salary,
+        pi.gross_pay,
+        pi.total_deductions,
+        pi.federal_tax,
+        pi.state_tax,
+        pi.insurance,
+        pi.other_deductions,
+        pi.bonuses,
+        pi.allowances,
+        pi.commissions,
+        pi.overtime_pay
+      FROM payslips p
+      LEFT JOIN payroll_items pi ON p.payroll_run_id = pi.payroll_run_id AND p.employee_id = pi.employee_id
+      WHERE p.id = $1 AND p.employee_id = $2
+    `;
+    const result = await pool.query(sql, [id, employeeId]);
+    if (result.rows.length === 0) return null;
+    return mapPayslip(result.rows[0]);
   },
 
   // 3. USER: Get My Salary History
@@ -145,6 +184,18 @@ const mapPayslip = (row: any): Payslip => ({
   netSalary: parseFloat(row.net_salary),
   status: row.status,
   pdfUrl: row.pdf_url,
+  // Detailed fields (check if they exist in row)
+  baseSalary: row.base_salary ? parseFloat(row.base_salary) : undefined,
+  grossPay: row.gross_pay ? parseFloat(row.gross_pay) : undefined,
+  totalDeductions: row.total_deductions ? parseFloat(row.total_deductions) : undefined,
+  federalTax: row.federal_tax ? parseFloat(row.federal_tax) : undefined,
+  stateTax: row.state_tax ? parseFloat(row.state_tax) : undefined,
+  insurance: row.insurance ? parseFloat(row.insurance) : undefined,
+  otherDeductions: row.other_deductions ? parseFloat(row.other_deductions) : undefined,
+  bonuses: row.bonuses ? parseFloat(row.bonuses) : undefined,
+  allowances: row.allowances ? parseFloat(row.allowances) : undefined,
+  commissions: row.commissions ? parseFloat(row.commissions) : undefined,
+  overtimePay: row.overtime_pay ? parseFloat(row.overtime_pay) : undefined,
 });
 
 const mapHistory = (row: any): SalaryHistory => ({
