@@ -35,4 +35,5 @@ backend/*.md
 # sql 
 
 *.sql
-*/*.sql
+!database/
+!database/**/*.sql

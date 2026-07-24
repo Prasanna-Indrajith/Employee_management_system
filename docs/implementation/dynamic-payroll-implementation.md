@@ -495,7 +495,7 @@ interface EmployeePayrollResponse {
 ### **Database Migration**:
 ```bash
 # Execute the enhanced schema
-psql -d your_database_name -f payroll_enhancements.sql
+psql -d your_database_name -f database/schema/payroll-enhancements.sql
 
 # Insert default deduction types
 # This will be handled by the SQL script automatically

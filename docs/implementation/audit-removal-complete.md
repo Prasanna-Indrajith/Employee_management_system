@@ -15,7 +15,7 @@
 - ✅ `frontend/src/components/app-sidebar.tsx` - Menu item updates
 
 ### **🗃 Database Cleanup:**
-- ✅ `backend/audit_tables.sql` - Database schema file
+- ✅ `database/legacy/audit-tables.sql` - Archived legacy database schema file
 - ✅ `backend/src/components/ui/salary-breakdown-card.tsx` - Admin component (not needed)
 - ✅ `backend/src/components/tabs/admin/SalaryReportsTab.tsx` - Admin component (not needed)
 

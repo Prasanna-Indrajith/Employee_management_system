@@ -75,7 +75,7 @@ backend/src/services/audit.service.ts   # Audit service
 backend/src/middlewares/audit.middleware.ts # Request logging
 backend/src/migrations/create-audit-tables.ts # Database migration
 backend/src/jobs/audit-cleanup.job.ts # Cleanup automation
-backend/audit_tables.sql             # Database schema
+database/legacy/audit-tables.sql             # Archived database schema
 ```
 
 ### Modified Files

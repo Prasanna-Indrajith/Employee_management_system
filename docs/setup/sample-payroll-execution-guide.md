@@ -5,19 +5,19 @@
 Replace the connection parameters in the SQL file:
 
 ```bash
-psql -h [YOUR_HOST] -U [YOUR_USERNAME] -d [YOUR_DATABASE_NAME] -f sample_payroll_data_rs.sql
+psql -h [YOUR_HOST] -U [YOUR_USERNAME] -d [YOUR_DATABASE_NAME] -f database/seed/sample-payroll-data-rs.sql
 ```
 
 **Example:**
 ```bash
-psql -h localhost -U postgres -d employee_management -f sample_payroll_data_rs.sql
+psql -h localhost -U postgres -d employee_management -f database/seed/sample-payroll-data-rs.sql
 ```
 
 ## 📝 **Step 2: Execute the Script**
 
 ```bash
 cd /home/prasa/Documents/EMS/employee_management_system
-psql -h localhost -U postgres -d employee_management -f sample_payroll_data_rs.sql
+psql -h localhost -U postgres -d employee_management -f database/seed/sample-payroll-data-rs.sql
 ```
 
 ## 📊 **Expected Output**
