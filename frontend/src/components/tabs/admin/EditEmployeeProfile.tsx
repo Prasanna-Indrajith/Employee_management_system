@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { ArrowLeft, Save, X, AlertCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, Save, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -19,11 +19,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-
 // API & Types
 import { employeeAPI } from '@/services/api';
-import type { LookupData, Employee } from '@/types';
+import type { LookupData } from '@/types';
 import { toast } from 'sonner';
 
 export default function EditEmployee() {

@@ -2,7 +2,6 @@
 
 "use client";
 
-import { TrendingUp } from "lucide-react";
 import { Pie, PieChart } from "recharts";
 
 // We no longer import Card, CardHeader, CardDescription, CardFooter, CardTitle

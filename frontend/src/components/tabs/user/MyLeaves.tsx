@@ -59,18 +59,20 @@ export default function MyLeaves() {
   // 2. Handle Submit
   const handleRequest = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
     // This one function handles Loading, Success, AND Error states
     toast.promise(leaveAPI.requestLeave(formData), {
       loading: 'Submitting your request...',
-      success: (response) => {
+      success: () => {
         setFormData({ leaveType: '', startDate: '', endDate: '', reason: '' });
         fetchLeaves();
         return 'Request submitted! Your manager has been notified.';
       },
-      error: (err) => {
+      error: () => {
         return 'Could not submit request. Please check your connection.';
       },
+      finally: () => setIsSubmitting(false),
     });
   };
 

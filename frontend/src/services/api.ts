@@ -23,14 +23,6 @@ const api = axios.create({
   timeout: 10000,
 });
 
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('token'); // or however you store your auth token
-  return {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${token}`,
-  };
-};
-
 // 1. Request Interceptor: Attach Token
 api.interceptors.request.use(
   (config) => {

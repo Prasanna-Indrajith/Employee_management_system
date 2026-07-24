@@ -170,7 +170,7 @@ export default function AddEmployee() {
 
     toast.promise(employeeAPI.create(payload), {
       loading: `Creating profile for ${fullName}...`,
-      success: (res) => {
+      success: () => {
         // Small delay or immediate navigation
         navigate('/admin/employees/all');
         return `${formData.firstName} has been added to the system.`;

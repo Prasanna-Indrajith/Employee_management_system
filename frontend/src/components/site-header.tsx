@@ -1,20 +1,15 @@
-import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { ModeToggle } from './mode-toggle';
 
-import { ChevronRight, Split } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 
 interface SiteHeaderProps {
   role: string;
   tabName: string;
 }
 
-const pathArray = () => {
-  alert('hello');
-};
-
-export function SiteHeader({ role, tabName }: SiteHeaderProps) {
+export function SiteHeader({ tabName }: SiteHeaderProps) {
   const parts = tabName.split('/').filter((part) => part !== '');
 
   return (
@@ -26,11 +21,11 @@ export function SiteHeader({ role, tabName }: SiteHeaderProps) {
           className="mx-2 data-[orientation=vertical]:h-4"
         />
         <h1 className="text-muted-foreground text-sm">
-          {parts.map((part, index) => (
-            <>
+          {parts.map((part) => (
+            <span key={part}>
               <span>{part}</span>
               <ChevronRight className="inline" />
-            </>
+            </span>
           ))}
         </h1>
         <div className="ml-auto flex items-center gap-2">

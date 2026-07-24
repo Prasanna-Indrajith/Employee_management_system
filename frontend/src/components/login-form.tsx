@@ -4,7 +4,6 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { authAPI } from '@/services/api'; // Import your API service
 import { Loader2 } from 'lucide-react'; // Import a spinner icon
 import { useAuth } from '@/contexts/AuthContext';
 

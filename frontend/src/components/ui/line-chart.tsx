@@ -2,7 +2,6 @@
 
 "use client";
 
-import { TrendingUp } from "lucide-react"; // Keeping TrendingUp as it's part of the chart interaction
 import { CartesianGrid, Line, LineChart, XAxis } from "recharts";
 
 // We no longer import Card, CardHeader, CardDescription, CardFooter, CardTitle

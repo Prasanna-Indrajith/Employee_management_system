@@ -6,7 +6,7 @@ export const useAdminNavigation = () => {
   return {
     goToDashboard: () => navigate('/admin/dashboard'),
     goToEmployees: () => navigate('/admin/employees/all'),
-    goToEmployeeProfile: (id) => navigate(`/admin/employees/${id}`),
+    goToEmployeeProfile: (id: string) => navigate(`/admin/employees/${id}`),
     goToTimesheets: () => navigate('/admin/attendance/timesheets'),
     goToTimeOffRequests: () => navigate('/admin/attendance/time-off-requests'),
     goToPayroll: () => navigate('/admin/salary/payroll'),

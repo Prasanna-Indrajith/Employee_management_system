@@ -5,8 +5,7 @@ const mockUsers: (User & { password: string })[] = [
   {
     id: '1',
     email: 'admin@company.com',
-    firstName: 'John',
-    lastName: 'Admin',
+    fullName: 'John Admin',
     role: 'admin',
     password: 'admin123',
     employeeId: 'EMP001'
@@ -14,8 +13,7 @@ const mockUsers: (User & { password: string })[] = [
   {
     id: '2',
     email: 'user@company.com',
-    firstName: 'Jane',
-    lastName: 'User',
+    fullName: 'Jane User',
     role: 'user',
     password: 'user123',
     employeeId: 'EMP002'

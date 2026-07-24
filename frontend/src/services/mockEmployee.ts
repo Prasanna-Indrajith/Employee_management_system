@@ -144,6 +144,10 @@ export const mockEmployeeAPI = {
     const newEmployee: Employee = {
       id: `EMP${String(mockEmployees.length + 1).padStart(3, '0')}`,
       ...employeeData,
+      location: `Location ${employeeData.locationId}`,
+      department: `Department ${employeeData.departmentId}`,
+      position: `Position ${employeeData.positionId}`,
+      bio: employeeData.bio || '',
       status: 'active',
     };
 
