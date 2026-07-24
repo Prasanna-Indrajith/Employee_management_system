@@ -13,6 +13,7 @@
 # Logs and local environment
 **/*.log
 **/.env*
+!**/.env.example
 
 # Database scripts
 *.sql
