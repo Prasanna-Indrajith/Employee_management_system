@@ -1,39 +1,30 @@
+# Project-local notes
 /info*.md
 
-
-backend/package-lock.json
-backend/dist
-backend/.DS_Store
-backend/.ts__
-backend//src/generated/prisma
-backend/*.md
-
-/src/generated/prisma
-
-# Node modules (any depth)
+# Dependencies and lockfiles
 **/node_modules/
-*.bak
+**/package-lock.json
 
-# Build output
+# Build output and generated files
 **/dist/
 **/build/
+**/src/generated/prisma/
 
-# Logs
+# Logs and local environment
 **/*.log
-
-# Local env files
 **/.env*
 
-# OS-specific
-.DS_Store
+# Database scripts
+*.sql
+!database/
+!database/**/*.sql
 
-# Editor settings
+# OS and editor files
+**/.DS_Store
 .vscode/*
 !.vscode/extensions.json
 .idea/
 
-# sql 
-
-*.sql
-!database/
-!database/**/*.sql
+# Temporary and backup files
+*.bak
+.ts__
